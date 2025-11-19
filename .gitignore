@@ -55,5 +55,9 @@ htmlcov/
 *.log
 *.bak
 
+# Performance logs and deprecated debug scripts
+*.csv
+deprecated/
+
 # Validation output (may contain paths)
 proof_of_concept/synthetic_validation_output.txt

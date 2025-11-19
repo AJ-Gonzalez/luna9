@@ -38,11 +38,18 @@ This helps us solve the context window problem for knowledge retention with geom
 
 
 
-## Features
+## Current Status
 
-WIP - proof of concept stage (it works!)
+**Phase 1: Living Memory Foundation - COMPLETE**
 
+The core geometric memory system is built, tested, and operational:
+- Semantic surfaces with Bézier parametric representation
+- Hierarchical domain organization (max 3 levels deep)
+- Full domain orchestration with DomainManager
+- Multi-turn iterative memory exploration
+- 13/13 tests passing
 
+**Next:** Persistence layer (save/load domains to disk)
 
 ## Roadmap
 
@@ -50,35 +57,37 @@ In order (subject to change)
 
 Please note the word domain here is used as 'Knowledge Domain'
 
-1. Continous geometric memory based on n dimensional navigable Bezier surfaces. (proof of concept done)
-    - Figure out update state/manage state in domains. (Add, remove/forget)
-    - Start with core static domains: 
-        - Personal (Collaborative relationship, user context, communication style)
-        - Foundation (environment, reference books, manuals, papers, primary sources)
-    - Add dynamic domain support (Domains based on projects/ languages, etc)
-        - parallel awareness and traversal
-    - Add resolution adjustment (Detail level per domain surface )
+### 1. Continuous geometric memory (DONE)
+- [x] Navigable Bézier surfaces for semantic space
+- [x] Mutability: append messages with lazy rebuild
+- [x] Domain abstraction with hierarchy (slash notation: `foundation/books/rust`)
+- [x] DomainManager orchestration:
+  - Discovery: `list_domains()`, `get_domain_info()`
+  - Search: `search_domain()` with semantic/literal/both modes
+  - Mutation: `create_domain()`, `add_to_domain()`
+  - Lifecycle: `load_domain()`, `unload_domain()`, `delete_domain()`
+- [x] Multi-domain search with automatic descendant traversal
+- [x] Exception hierarchy for clean error handling
+- [ ] **IN PROGRESS:** Persistence (save/load to disk)
+- [ ] **NEXT:** Performance benchmarks at scale
 
+### 2. Initiative Modeling Engine
+- Scaffolding for autonomous decision-making
+- Curvature-based attention (navigate to high-importance regions)
+- Dynamic domain spawning (create specialized knowledge surfaces on-demand)
+- Learn from interaction (add control points to surfaces geometrically)
 
-2. Initiative Modeling Engine
-    - Scaffolding for autonomous decision-making
-    - Curvature-based attention (navigate to high-importance regions)
-    - Dynamic domain spawning (create specialized knowledge surfaces on-demand)
-    - Learn from interaction (add control points to surfaces geometrically)
+### 3. Ongoing context management engine
+- Consensual relevancy based message compression and organization/summary (keeps round trips with large context to a minimum)
+- Preserve full history in assigned domain
+- Autonomous lookups/recall and autonomous importance/relevancy assignment
 
-3. Ongoing context management engine
-    - Consensual relevancy based message compression and organization/sumamry (keeps round trips with large context to a minimum)
-    - preserve full history in assigned domain
-    - autonomous lookups/recall and autonomous importance/relevancy assignment
-
-
-
-4. Core Client features
-    - BYOK support for [OpenRouter](openrouter.ai), Anthropic, OpenAI
-    - Decide if desktop, web, TUI, or original CLI vision.
-    - add basic tooling
-    - add coding tooling
-    - Add extensions platform (Replaces MCP)
+### 4. Core Client features
+- BYOK support for [OpenRouter](openrouter.ai), Anthropic, OpenAI
+- Decide if desktop, web, TUI, or original CLI vision
+- Add basic tooling
+- Add coding tooling
+- Add extensions platform (Replaces MCP)
 
 Far future:
 

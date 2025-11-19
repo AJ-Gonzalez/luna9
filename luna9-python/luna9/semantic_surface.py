@@ -9,11 +9,12 @@ exact source references.
 """
 
 import numpy as np
+import time
 from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
 from sentence_transformers import SentenceTransformer
 
-from surface_math import (
+from .surface_math import (
     evaluate_surface,
     project_to_surface,
     geodesic_distance,
@@ -22,6 +23,7 @@ from surface_math import (
     semantic_displacement,
     compute_path_curvature
 )
+from .performance import log_performance
 
 
 @dataclass
@@ -96,13 +98,16 @@ class SemanticSurface:
             embeddings: Pre-computed embeddings (n, d) or None to compute
             model_name: sentence-transformers model to use if computing embeddings
             grid_shape: Optional (m, n) tuple for surface dimensions. If None, infers:
-                       - 16 messages → 4×4
-                       - 12 messages → 3×4
-                       - 9 messages → 3×3
+                       - 16 messages → 4x4
+                       - 12 messages → 3x4
+                       - 9 messages → 3x3
                        - etc.
         """
         self.messages = messages
         self.model_name = model_name
+        self._embedding_model = None  # Lazy-loaded
+        self._dirty = False  # Track if surface needs rebuild
+        self._pending_messages = []  # Buffer for new messages
         num_messages = len(messages)
 
         # Infer grid shape if not provided
@@ -113,19 +118,25 @@ class SemanticSurface:
         expected_count = self.grid_m * self.grid_n
 
         assert num_messages == expected_count, \
-            f"Expected {expected_count} messages for {self.grid_m}×{self.grid_n} grid, got {num_messages}"
+            f"Expected {expected_count} messages for {self.grid_m}x{self.grid_n} grid, got {num_messages}"
 
         # Embed messages if not provided
         if embeddings is None:
             print(f"Embedding {len(messages)} messages with {model_name}...")
+            start = time.perf_counter()
             model = SentenceTransformer(model_name)
             embeddings = model.encode(messages, show_progress_bar=False)
+            duration = (time.perf_counter() - start) * 1000
+            log_performance("embed_initial", duration,
+                          message_count=len(messages),
+                          model=model_name,
+                          embedding_dim=embeddings.shape[1])
             print(f"  Created embeddings: {embeddings.shape}")
 
         self.embeddings = embeddings
         self.embedding_dim = embeddings.shape[1]
 
-        # Arrange as m×n control points
+        # Arrange as mxn control points
         self.control_points = embeddings.reshape(self.grid_m, self.grid_n, self.embedding_dim)
         self.weights = np.ones((self.grid_m, self.grid_n))
 
@@ -133,7 +144,7 @@ class SemanticSurface:
         self.provenance = self._build_provenance()
 
         print(f"Created semantic surface:")
-        print(f"  Control points: {self.grid_m}×{self.grid_n}")
+        print(f"  Control points: {self.grid_m}x{self.grid_n}")
         print(f"  Embedding dim: {self.embedding_dim}")
         print(f"  Messages: {len(messages)}")
 
@@ -165,7 +176,7 @@ class SemanticSurface:
                 n = num_messages // m
                 return (m, n)
 
-        # Fallback: 1×n (degenerate but works)
+        # Fallback: 1xn (degenerate but works)
         return (1, num_messages)
 
     def _build_provenance(self) -> Dict:
@@ -286,17 +297,26 @@ class SemanticSurface:
         Returns:
             RetrievalResult with both smooth and exact retrieval
         """
+        start = time.perf_counter()
+
+        # Ensure surface is up-to-date
+        self.ensure_built()
+
         # Embed query
-        model = SentenceTransformer(self.model_name)
+        embed_start = time.perf_counter()
+        model = self._get_embedding_model()
         query_embedding = model.encode([query_text], show_progress_bar=False)[0]
+        embed_duration = (time.perf_counter() - embed_start) * 1000
 
         # Project to surface
+        project_start = time.perf_counter()
         u, v, iterations = project_to_surface(
             query_embedding,
             self.control_points,
             self.weights,
             max_iterations=max_projection_iterations
         )
+        project_duration = (time.perf_counter() - project_start) * 1000
 
         # Compute influence (smooth retrieval)
         influence = self.compute_influence(u, v)
@@ -306,6 +326,16 @@ class SemanticSurface:
 
         # Compute curvature at query point
         K, H = compute_curvature(self.control_points, self.weights, u, v)
+
+        total_duration = (time.perf_counter() - start) * 1000
+
+        log_performance("query", total_duration,
+                      grid_size=f"{self.grid_m}x{self.grid_n}",
+                      message_count=len(self.messages),
+                      k=k,
+                      projection_iterations=iterations,
+                      embed_ms=f"{embed_duration:.2f}",
+                      project_ms=f"{project_duration:.2f}")
 
         return RetrievalResult(
             uv=(u, v),
@@ -377,6 +407,136 @@ class SemanticSurface:
             uv2,
             num_steps=num_steps
         )
+
+
+    def _get_embedding_model(self):
+        """Lazy-load embedding model."""
+        if self._embedding_model is None:
+            self._embedding_model = SentenceTransformer(self.model_name)
+        return self._embedding_model
+
+    def append_message(
+        self,
+        message: str,
+        metadata: Optional[Dict] = None,
+        rebuild_threshold: float = 0.1
+    ) -> None:
+        """
+        Append a single message to the surface.
+
+        Messages are buffered and surface is rebuilt when buffer exceeds
+        rebuild_threshold (as fraction of current size) or on next query.
+
+        Args:
+            message: Text message to add
+            metadata: Optional metadata dict for this message
+            rebuild_threshold: Rebuild when pending >= threshold * current_size
+        """
+        self._pending_messages.append({'text': message, 'metadata': metadata})
+        self._dirty = True
+
+        # Auto-rebuild if buffer exceeds threshold
+        current_size = len(self.messages)
+        pending_size = len(self._pending_messages)
+
+        if pending_size >= max(1, int(current_size * rebuild_threshold)):
+            self._rebuild_surface()
+
+    def append_messages(
+        self,
+        messages: List[str],
+        metadata: Optional[List[Dict]] = None,
+        rebuild_threshold: float = 0.1
+    ) -> None:
+        """
+        Append multiple messages to the surface (batch operation).
+
+        Args:
+            messages: List of text messages to add
+            metadata: Optional list of metadata dicts (same length as messages)
+            rebuild_threshold: Rebuild when pending >= threshold * current_size
+        """
+        if metadata is None:
+            metadata = [None] * len(messages)
+
+        for msg, meta in zip(messages, metadata):
+            self._pending_messages.append({'text': msg, 'metadata': meta})
+
+        self._dirty = True
+
+        # Auto-rebuild if buffer exceeds threshold
+        current_size = len(self.messages)
+        pending_size = len(self._pending_messages)
+
+        if pending_size >= max(1, int(current_size * rebuild_threshold)):
+            self._rebuild_surface()
+
+    def _rebuild_surface(self) -> None:
+        """
+        Rebuild surface incorporating pending messages.
+
+        Extends grid dimensions and recomputes embeddings/provenance.
+        """
+        if not self._pending_messages:
+            return
+
+        start = time.perf_counter()
+        old_size = len(self.messages)
+        old_grid = (self.grid_m, self.grid_n)
+        pending_count = len(self._pending_messages)
+
+        print(f"Rebuilding surface: {old_size} -> {old_size + pending_count} messages")
+
+        # Add pending messages to messages list
+        for pending in self._pending_messages:
+            self.messages.append(pending['text'])
+
+        # Recompute embeddings for ALL messages
+        # (Could optimize to only embed new ones, but simpler for now)
+        embed_start = time.perf_counter()
+        model = self._get_embedding_model()
+        self.embeddings = model.encode(self.messages, show_progress_bar=False)
+        embed_duration = (time.perf_counter() - embed_start) * 1000
+
+        log_performance("embed_rebuild", embed_duration,
+                      message_count=len(self.messages),
+                      new_messages=pending_count)
+
+        # Infer new grid shape
+        num_messages = len(self.messages)
+        self.grid_m, self.grid_n = self._infer_grid_shape(num_messages)
+
+        # Reshape control points
+        self.control_points = self.embeddings.reshape(
+            self.grid_m, self.grid_n, self.embedding_dim
+        )
+        self.weights = np.ones((self.grid_m, self.grid_n))
+
+        # Rebuild provenance
+        self.provenance = self._build_provenance()
+
+        # Clear pending buffer
+        self._pending_messages = []
+        self._dirty = False
+
+        total_duration = (time.perf_counter() - start) * 1000
+        log_performance("rebuild_surface", total_duration,
+                      old_size=old_size,
+                      new_size=len(self.messages),
+                      old_grid=f"{old_grid[0]}x{old_grid[1]}",
+                      new_grid=f"{self.grid_m}x{self.grid_n}",
+                      pending_count=pending_count)
+
+        print(f"  New grid: {self.grid_m}x{self.grid_n}")
+
+    def ensure_built(self) -> None:
+        """
+        Ensure surface is up-to-date (rebuild if dirty).
+
+        Call before querying to ensure pending messages are incorporated.
+        """
+        if self._dirty:
+            self._rebuild_surface()
 
 
 def create_surface_from_conversation(

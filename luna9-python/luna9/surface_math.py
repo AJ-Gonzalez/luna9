@@ -44,7 +44,7 @@ def evaluate_surface(
     """
     Evaluate a rational Bézier surface at parameter coordinates (u, v).
 
-    For a surface with m×n control points of degree (m-1, n-1):
+    For a surface with mxn control points of degree (m-1, n-1):
     S(u,v) = Σᵢ Σⱼ wᵢⱼ Pᵢⱼ Bᵢ^(m-1)(u) Bⱼ^(n-1)(v) / Σᵢ Σⱼ wᵢⱼ Bᵢ^(m-1)(u) Bⱼ^(n-1)(v)
 
     Args:
@@ -275,7 +275,7 @@ def project_to_surface(
         if residual_norm < tolerance:
             return u, v, iteration
 
-        # Build Jacobian (2×2 matrix in parameter space)
+        # Build Jacobian (2x2 matrix in parameter space)
         # J = [[S_u·S_u, S_u·S_v],
         #      [S_v·S_u, S_v·S_v]]
         J = np.array([
