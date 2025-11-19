@@ -1,0 +1,36 @@
+# Domain 1: AI Safety Discussion
+# Type: Technical Q&A conversation
+# Topic: AI safety risks, alignment, regulation
+# Date: November 18, 2025 (test dataset)
+
+Message 0: What are the main risks of AGI?
+
+Message 1: The main risks include misalignment, rapid capability gain, and unintended consequences.
+
+Message 2: But isn't misalignment solvable with RLHF?
+
+Message 3: RLHF helps but has limitations - it optimizes for human feedback, not true alignment.
+
+Message 4: What about using formal verification?
+
+Message 5: Formal verification is promising but currently doesn't scale to large neural networks.
+
+Message 6: So what's the path forward?
+
+Message 7: Multiple approaches: interpretability research, robustness testing, and iterative deployment.
+
+Message 8: That sounds expensive.
+
+Message 9: True, but the cost of getting it wrong is potentially catastrophic.
+
+Message 10: Fair point. What about AI regulation?
+
+Message 11: Regulation can help, but needs to be technically informed and internationally coordinated.
+
+Message 12: Isn't that unrealistic?
+
+Message 13: It's challenging but necessary - we've seen international coordination on nuclear weapons.
+
+Message 14: Good analogy.
+
+Message 15: Though AI is harder to regulate due to dual-use nature and rapid development.
