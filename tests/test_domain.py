@@ -192,7 +192,7 @@ def test_domain_hierarchy():
 def test_domain_metadata():
     """Test domain metadata storage."""
     custom_metadata = {
-        "author": "Alicia",
+        "author": "Test User",
         "project": "Luna Nine",
         "purpose": "Memory testing"
     }

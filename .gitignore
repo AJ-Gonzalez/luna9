@@ -1,5 +1,7 @@
-# Private - our personal notes, real data, relationship context
+# Private context
 private/**
+
+datasets/**
 
 .claude/**
 
@@ -61,3 +63,8 @@ deprecated/
 
 # Validation output (may contain paths)
 proof_of_concept/synthetic_validation_output.txt
+
+# Geometric labeling test outputs
+geometric_labels_test/
+show_samples.py
+test_geometric_labeling.py

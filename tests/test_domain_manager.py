@@ -320,9 +320,9 @@ def test_real_world_scenario(dm):
 
     # Add content
     dm.add_to_domain("personal", [
-        "Alicia is my collaborator",
-        "We're building Luna Nine together",
-        "She values presence over productivity"
+        "Working on Luna Nine project",
+        "Building geometric memory system",
+        "Focus on continuous context"
     ])
 
     dm.add_to_domain("foundation/books/rust", [
@@ -343,7 +343,7 @@ def test_real_world_scenario(dm):
     assert any("rust" in r['domain_path'].lower() for r in results)
 
     # Query personal
-    results = dm.search_domain("personal", "Alicia", k=2)
+    results = dm.search_domain("personal", "Luna Nine", k=2)
     assert len(results) > 0
     assert all(r['domain_path'] == 'personal' for r in results)
 

@@ -1,12 +1,77 @@
 # Luna9
 
-Open source AI client with continous autonomous memory and built in initiative. 
-More than a tool think of it like a home for AI in your computer.
+**A foundation for ethical AI interaction**
 
-Memory that can both quote verbatinm and recall by relation and association in a fuzzy way.
-Initiative to use said memory, work autonomously without context or purpose drift.
+Luna Nine is three things at once:
 
-*Named after the Luna 9 mission as this is a bit of a moonshot but Moonshot AI already exists.*
+1. **Powerful infrastructure** for any AI application - geometric memory and initiative as a service
+2. **Thoughtful AI client** for developers - terminal integration meets rich desktop experience
+3. **Ethical framework** for AI collaboration - stop prompting, start talking
+
+Give LLMs continuous memory and autonomous initiative. Give users genuine collaboration instead of prompt engineering. Give both the foundation to shine.
+
+## What Makes Luna Nine Different
+
+**Continuous Memory:**
+- Conversations persist across sessions with full context
+- Geometric surfaces encode semantic relationships, not just vectors
+- Memory you can navigate, not just search
+
+**Built-in Initiative:**
+- AI decides when to search memory autonomously
+- Geometric inference for fast decisions (no token costs)
+- Two-tier system: geometry for speed, LLM for complexity
+
+**Beyond Prompting:**
+- Terminal command for developer flow: `luna9 "thought?"`
+- Desktop app to watch AI think and act
+- Backend runs anywhere: localhost, homelab, cloud
+
+*Named after the Luna 9 mission - this is a bit of a moonshot, but Moonshot AI was already taken.*
+
+Still early stages but ethis is the vision.
+
+## Use Luna Nine As...
+
+### Infrastructure for Your AI App
+Add geometric memory and initiative to any LLM application:
+
+```typescript
+import { Luna9 } from '@luna9/client';
+import { wrapWithLuna9 } from '@luna9/ai-sdk';
+
+const aiWithMemory = wrapWithLuna9(yourLLM, {
+  apiKey: process.env.LUNA9_API_KEY,
+  autoSearch: true,  // Automatically inject relevant memory
+  domain: 'your-app/users/123'
+});
+
+// That's it - your AI now has continuous memory
+const response = await aiWithMemory.chat(userMessage);
+```
+
+### A Thoughtful AI Client
+For developers who want terminal integration and visibility into AI thinking:
+
+```bash
+# Terminal: Fast, composable, stays in flow
+$ git diff | luna9 "review these changes"
+$ pytest | luna9 "help debug failures"
+
+# Desktop: Watch AI search memory, create files, make decisions
+# See initiative feed, browse memory domains, configure everything
+```
+
+### Ethical Framework
+Stop prompting. Start talking. Give LLMs:
+- Memory that persists across sessions
+- Ability to search context autonomously
+- Initiative to act without being told
+
+Give users:
+- Transparent AI reasoning (watch it think)
+- Control over autonomous actions
+- True collaboration, not prompt engineering
 
 **A note on alignment**
 
@@ -69,54 +134,68 @@ The core geometric memory system is built, tested, and operational:
 
 ## Roadmap
 
-In order (subject to change)
+Luna Nine is being developed as both **infrastructure** (geometric memory + initiative as a service) and a **thoughtful client** (desktop + terminal). Open source forever, with managed cloud service planned.
 
-Please note the word domain here is used as 'Knowledge Domain'
-
-### 1. Continuous geometric memory (DONE)
+### Phase 1: Living Memory (COMPLETE)
 - [x] Navigable Bézier surfaces for semantic space
-- [x] Mutability: append messages with lazy rebuild
-- [x] Domain abstraction with hierarchy (slash notation: `foundation/books/rust`)
-- [x] DomainManager orchestration:
-  - Discovery: `list_domains()`, `get_domain_info()`
-  - Search: `search_domain()` with semantic/literal/both modes
-  - Mutation: `create_domain()`, `add_to_domain()`
-  - Lifecycle: `load_domain()`, `unload_domain()`, `delete_domain()`
-- [x] Multi-domain search with automatic descendant traversal
-- [x] Exception hierarchy for clean error handling
-- [x] Persistence (JSON + npz format, cross-platform)
-- [x] Source attribution metadata for fact-checking
-- [ ] **NEXT:** Performance benchmarks at scale
+- [x] Hierarchical domain organization (`foundation/books/rust`)
+- [x] DomainManager with full CRUD operations
+- [x] Semantic and literal search modes
+- [x] Persistence layer (JSON + npz, cross-platform)
+- [x] Source attribution for fact-checking
+- [x] Geometric relationship inference (validated POC)
 
-### 2. Initiative Modeling Engine
-- Scaffolding for autonomous decision-making
-- Curvature-based attention (navigate to high-importance regions)
-- Dynamic domain spawning (create specialized knowledge surfaces on-demand)
-- Learn from interaction (add control points to surfaces geometrically)
+### Phase 2: Initiative Engine (IN PROGRESS)
+- [ ] Hash-based indexing for O(1) memory lookup
+- [ ] Two-tier inference (geometric + LLM fallback)
+- [ ] Autonomous memory search decisions
+- [ ] Curvature-based attention and importance
+- [ ] Dynamic domain spawning
+- [ ] Geometric security (prompt injection detection)
 
-### 3. Ongoing context management engine
-- Consensual relevancy based message compression and organization/summary (keeps round trips with large context to a minimum)
-- Preserve full history in assigned domain
-- Autonomous lookups/recall and autonomous importance/relevancy assignment
+### Phase 3: Context Management
+- [ ] Intelligent context window optimization
+- [ ] Consensual compression with full history preservation
+- [ ] Autonomous relevancy assessment
+- [ ] Token usage analytics and optimization
 
-### 4. Core Client features
-- BYOK support for [OpenRouter](openrouter.ai), Anthropic, OpenAI
-- Decide if desktop, web, TUI, or original CLI vision
-- Add basic tooling
-- Add coding tooling
-- Add extensions platform (Replaces MCP)
+### Phase 4: Backend Service
+- [ ] FastAPI server with REST + WebSocket
+- [ ] Tool execution framework (file ops, shell commands)
+- [ ] Multi-provider LLM support (Anthropic, OpenAI, OpenRouter)
+- [ ] BYOK (Bring Your Own Key)
+- [ ] Configuration system
+- [ ] Initiative action event stream
 
-Far future:
+### Phase 5: Client Applications
+- [ ] **Terminal command:** `luna9 "message"` with stdin piping
+- [ ] **Desktop app:** Conversation UI, memory browser, initiative feed
+- [ ] Cross-platform packaging (Windows, macOS, Linux)
+- [ ] Backend deployment options (localhost, homelab, cloud)
 
-- Invent package manager for Python that isn't project focused and is super easy to use. (Only half joking)
-- or port entire thing to golang.
+### Phase 6: Developer Experience
+- [ ] **Python SDK** (native, full-featured)
+- [ ] **TypeScript/JavaScript SDK** (REST wrapper)
+- [ ] **Vercel AI SDK middleware** (drop-in integration)
+- [ ] **CLI tools** for domain management
+- [ ] Comprehensive API documentation
+- [ ] Example applications and tutorials
 
-*Original CLI vision*
+### Phase 7: Managed Cloud Service (FUTURE)
+- [ ] Luna Nine Backend as managed service
+- [ ] Pay-per-use pricing with free tier
+- [ ] Automatic updates and scaling
+- [ ] Multi-language SDK support
+- [ ] Analytics dashboard
+- [ ] **Self-hosting always available** (open source commitment)
 
-Tmux style terminal with a pane on the right for the current conversation. 
-Use the message box there or the `saytoai` command to say something to the model
-(Client may use two model isntances in parallel)
-The command can take stdin and give stdout, so like `cat logfile | grep Error | saytoai`.
+### Long-term Vision
+- Multi-user support with proper isolation
+- Federated memory (share domains across instances)
+- Visual memory exploration tools
+- Extensions marketplace
+- Enterprise on-premise deployment
+- Mobile clients (iOS, Android)
 
 
 ## Disclosures/Disclaimers
@@ -128,9 +207,16 @@ Highly experimental approach
 ## Acknowledgements
 
 - [SolveSpace Parametric Cad](https://solvespace.com/index.pl), for the basis of the Bezier surface stuff. 
+- [Audfprint](https://github.com/dpwe/audfprint), for the hashing algo to reduce complexity by a lot
 
 ## License and contributing
 
 Pull requests and feedback welcome.
 
 MIT License - See LICENSE file for details. 
+
+## Other ways to support Luna9
+
+- Leave a star!
+- [Donate via Ko-fi](https://ko-fi.com/luna9project) if you'd like to support development
+- Sponsor the project through GitHub
