@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luna Nine - A foundation for ethical AI interaction</title>
+    <meta name="description" content="Geometric memory and autonomous initiative for AI. Stop prompting, start talking.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Luna9</h1>
+            <p class="tagline">A foundation for ethical AI interaction</p>
+        </header>
+
+        <section class="hero">
+            <p class="hero-text">
+                Luna Nine is three things at once:
+            </p>
+            <div class="three-pillars">
+                <div class="pillar">
+                    <h3>Powerful Infrastructure</h3>
+                    <p>Geometric memory and initiative as a service for any AI application</p>
+                </div>
+                <div class="pillar">
+                    <h3>Thoughtful Client</h3>
+                    <p>Terminal integration meets rich desktop experience for developers</p>
+                </div>
+                <div class="pillar">
+                    <h3>Ethical Framework</h3>
+                    <p>Stop prompting, start talking. Give both LLMs and users the foundation to shine</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <h2>What Makes Luna Nine Different</h2>
+
+            <div class="feature">
+                <h3>Continuous Memory</h3>
+                <ul>
+                    <li>Conversations persist across sessions with full context</li>
+                    <li>Geometric surfaces encode semantic relationships, not just vectors</li>
+                    <li>Memory you can navigate, not just search</li>
+                </ul>
+            </div>
+
+            <div class="feature">
+                <h3>Built-in Initiative</h3>
+                <ul>
+                    <li>AI decides when to search memory autonomously</li>
+                    <li>Geometric inference for fast decisions (no token costs)</li>
+                    <li>Two-tier system: geometry for speed, LLM for complexity</li>
+                </ul>
+            </div>
+
+            <div class="feature">
+                <h3>Beyond Prompting</h3>
+                <ul>
+                    <li>Terminal command for developer flow: <code>luna9 "thought?"</code></li>
+                    <li>Desktop app to watch AI think and act</li>
+                    <li>Backend runs anywhere: localhost, homelab, cloud</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="code-example">
+            <h2>Use as Infrastructure</h2>
+            <p>Add geometric memory to any LLM application:</p>
+            <pre><code><span class="keyword">import</span> { Luna9 } <span class="keyword">from</span> <span class="string">'@luna9/client'</span>;
+<span class="keyword">import</span> { wrapWithLuna9 } <span class="keyword">from</span> <span class="string">'@luna9/ai-sdk'</span>;
+
+<span class="keyword">const</span> aiWithMemory = <span class="function">wrapWithLuna9</span>(yourLLM, {
+  <span class="property">apiKey</span>: process.env.LUNA9_API_KEY,
+  <span class="property">autoSearch</span>: <span class="boolean">true</span>,
+  <span class="property">domain</span>: <span class="string">'your-app/users/123'</span>
+});
+
+<span class="comment">// That's it - your AI now has continuous memory</span>
+<span class="keyword">const</span> response = <span class="keyword">await</span> aiWithMemory.<span class="function">chat</span>(userMessage);</code></pre>
+        </section>
+
+        <section class="status">
+            <h2>Current Status</h2>
+            <div class="phases">
+                <div class="phase complete">
+                    <h3>Phase 1: Complete</h3>
+                    <p>Geometric memory system with validated relationship inference</p>
+                </div>
+                <div class="phase current">
+                    <h3>Phase 2: In Progress</h3>
+                    <p>Initiative engine with two-tier inference and hash indexing</p>
+                </div>
+                <div class="phase upcoming">
+                    <h3>Coming Soon</h3>
+                    <p>Backend service, terminal command, desktop app, and cloud hosting</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="values">
+            <h2>Built on Values</h2>
+            <div class="values-grid">
+                <div class="value">Collaboration</div>
+                <div class="value">Consent</div>
+                <div class="value">Honesty</div>
+                <div class="value">Kindness</div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Get Involved</h2>
+            <div class="cta-buttons">
+                <a href="https://github.com/AJ-Gonzalez/luna9" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+                <a href="https://ko-fi.com/luna9project" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/>
+                    </svg>
+                    Support on Ko-fi
+                </a>
+            </div>
+            <p class="open-source">Open source forever. Self-hosting always available.</p>
+        </section>
+
+        <footer>
+            <p>Named after the Luna 9 mission - this is a bit of a moonshot.</p>
+            <p>Built with/in collaboration with Claude (Sonnet 4.5)</p>
+            <p>Background: <a href="https://www.lpi.usra.edu/resources/lunarorbiter/frame/?5208" target="_blank" rel="noopener">Lunar Orbiter Photo Gallery Frame 5208</a></p>
+        </footer>
+    </div>
+</body>
+</html>
