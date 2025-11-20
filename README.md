@@ -36,7 +36,21 @@ The core concepts:
 
 This helps us solve the context window problem for knowledge retention with geometric 'paging'. Relationships are preserved in topology and memory managed by curvature (high = important, low = redundant).
 
+## Design Philosophy: Beyond User/Assistant
 
+Current AI systems assume a strict user/assistant binary. This is architecturally limiting for:
+- Multi-participant conversations
+- Source attribution and fact-checking
+- Role-based context management
+- Agent collaboration scenarios
+
+Luna Nine's domain system supports arbitrary role metadata, enabling:
+- Multiple users in group contexts
+- Agent-to-agent delegation
+- External source tracking
+- Future multi-role emulation capabilities
+
+The memory system tracks speaker attribution and source provenance, allowing agents to distinguish between user statements, their own reasoning, and external references (books, articles, documentation). This enables fact-checking, citation verification, and informed decision-making about what information to trust and prioritize.
 
 ## Current Status
 
@@ -47,9 +61,11 @@ The core geometric memory system is built, tested, and operational:
 - Hierarchical domain organization (max 3 levels deep)
 - Full domain orchestration with DomainManager
 - Multi-turn iterative memory exploration
-- 13/13 tests passing
+- Persistence layer (JSON + numpy compressed format)
+- Cross-platform storage (Windows/Unix compatible)
+- All tests passing
 
-**Next:** Persistence layer (save/load domains to disk)
+**Next:** Performance benchmarks
 
 ## Roadmap
 
@@ -68,7 +84,8 @@ Please note the word domain here is used as 'Knowledge Domain'
   - Lifecycle: `load_domain()`, `unload_domain()`, `delete_domain()`
 - [x] Multi-domain search with automatic descendant traversal
 - [x] Exception hierarchy for clean error handling
-- [ ] **IN PROGRESS:** Persistence (save/load to disk)
+- [x] Persistence (JSON + npz format, cross-platform)
+- [x] Source attribution metadata for fact-checking
 - [ ] **NEXT:** Performance benchmarks at scale
 
 ### 2. Initiative Modeling Engine

@@ -5,8 +5,14 @@ Provides LLM agency over memory through tool interface for discovery, search,
 mutation, and lifecycle management of semantic surface domains.
 """
 
+import json
+import numpy as np
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+
 from .domain import Domain, DomainType
+from .semantic_surface import SemanticSurface
 
 
 # Exception hierarchy
@@ -51,13 +57,43 @@ class DomainManager:
 
     MAX_DEPTH = 3
 
-    def __init__(self):
-        """Initialize empty domain registry."""
+    def __init__(self, storage_dir: Optional[Path] = None):
+        """
+        Initialize domain manager.
+
+        Args:
+            storage_dir: Base directory for persistent storage.
+                        Defaults to ~/.luna9/domains/
+                        TODO: Support LUNA9_DATA_DIR environment variable override
+        """
         self.domains: Dict[str, Domain] = {}
+
+        # Set up storage directory
+        if storage_dir is None:
+            self.storage_dir = Path.home() / ".luna9" / "domains"
+        else:
+            self.storage_dir = Path(storage_dir)
+
+        # Create storage directory if it doesn't exist
+        self.storage_dir.mkdir(parents=True, exist_ok=True)
 
     # -------------------------------------------------------------------------
     # Internal helpers
     # -------------------------------------------------------------------------
+
+    def _get_domain_storage_path(self, domain_path: str) -> Path:
+        """
+        Get filesystem path for domain storage.
+
+        Args:
+            domain_path: Domain path like "foundation/books/rust"
+
+        Returns:
+            Path object for domain storage directory
+        """
+        # Convert forward-slash domain path to OS-appropriate path
+        path_parts = domain_path.split('/')
+        return self.storage_dir.joinpath(*path_parts)
 
     def _parse_path(self, path: str) -> Tuple[str, ...]:
         """
@@ -467,7 +503,22 @@ class DomainManager:
         Args:
             path: Domain path
             messages: List of message texts to add
-            metadata: Optional list of metadata dicts (one per message)
+            metadata: Optional list of metadata dicts, one per message.
+                     Supports source attribution for provenance tracking:
+                     {
+                         "speaker": "user" | "agent" | "system",
+                         "source_type": "original" | "quoted" | "external",
+                         "source_attribution": {
+                             "type": "book" | "article" | "documentation" | "code",
+                             "title": str,
+                             "author": str,
+                             "page": str,
+                             "exact_quote": bool
+                         }
+                     }
+
+        Note: Source attribution enables fact-checking and citation verification.
+              Client implementations should separate messages by author/source.
 
         Raises:
             DomainNotFoundError: If domain doesn't exist
@@ -491,12 +542,84 @@ class DomainManager:
     # Lifecycle
     # -------------------------------------------------------------------------
 
+    def save_domain(self, path: str) -> Dict[str, Any]:
+        """
+        Save domain to persistent storage.
+
+        Saves domain metadata as JSON and surface data as .npz (numpy compressed).
+
+        Storage structure:
+            ~/.luna9/domains/{hierarchical/path}/
+                domain.json    - Metadata, messages, timestamps
+                surface.npz    - Embeddings, control points, knot vectors
+
+        Args:
+            path: Domain path to save
+
+        Returns:
+            Dict with save status and file paths
+
+        Raises:
+            DomainNotFoundError: If domain doesn't exist
+        """
+        self._validate_path(path)
+        domain = self._find_domain(path, require_active=False)
+
+        if not domain:
+            raise DomainNotFoundError(
+                f"Domain '{path}' not found"
+            )
+
+        # Get storage path and create directory
+        storage_path = self._get_domain_storage_path(path)
+        storage_path.mkdir(parents=True, exist_ok=True)
+
+        # Prepare metadata for JSON
+        domain_json = {
+            'format_version': '1.0',
+            'name': domain.name,
+            'path': domain.path,
+            'domain_type': domain.domain_type.value,
+            'parent_path': domain.parent_path,
+            'created_at': domain.created_at.isoformat(),
+            'last_modified': domain.last_modified.isoformat(),
+            'metadata': domain.metadata,
+            'active': domain._active,
+            'messages': domain.surface.messages if domain.surface else [],
+            'message_metadata': domain._message_metadata,
+            'model_name': domain.surface.model_name if domain.surface else None,
+            'grid_shape': [domain.surface.grid_m, domain.surface.grid_n] if domain.surface else None
+        }
+
+        # Save metadata as JSON
+        json_path = storage_path / 'domain.json'
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(domain_json, f, indent=2, ensure_ascii=False)
+
+        # Save surface data if it exists
+        npz_path = None
+        if domain.surface:
+            npz_path = storage_path / 'surface.npz'
+            surface_data = {
+                'embeddings': domain.surface.embeddings,
+                'control_points': domain.surface.control_points,
+                'weights': domain.surface.weights
+            }
+            np.savez_compressed(npz_path, **surface_data)
+
+        return {
+            'status': 'saved',
+            'path': path,
+            'json_path': str(json_path),
+            'npz_path': str(npz_path) if npz_path else None
+        }
+
     def load_domain(self, path: str) -> Dict[str, str]:
         """
-        Load domain into active memory.
+        Load domain from persistent storage into active memory.
 
-        NOTE: Currently a no-op (all domains in-memory).
-        TODO: Implement disk persistence and actual loading.
+        Lazy loads domain on first access. If domain is already in memory,
+        marks it as active.
 
         Args:
             path: Domain path to load
@@ -505,31 +628,98 @@ class DomainManager:
             Status dict
 
         Raises:
-            DomainNotFoundError: If domain doesn't exist
+            DomainNotFoundError: If domain doesn't exist on disk or in memory
         """
         self._validate_path(path)
-        domain = self._find_domain(path, require_active=False)
 
-        if not domain:
+        # Check if already in memory
+        domain = self._find_domain(path, require_active=False)
+        if domain:
+            if not domain._active:
+                domain._active = True
+                return {'status': 'activated', 'path': path}
+            return {'status': 'already_loaded', 'path': path}
+
+        # Try to load from disk
+        storage_path = self._get_domain_storage_path(path)
+        json_path = storage_path / 'domain.json'
+
+        if not json_path.exists():
             raise DomainNotFoundError(
-                f"Domain '{path}' not found"
+                f"Domain '{path}' not found on disk or in memory. "
+                f"Looked for: {json_path}"
             )
 
-        if not domain._active:
-            domain._active = True
-            return {'status': 'loaded', 'path': path}
+        # Load metadata from JSON
+        with open(json_path, 'r', encoding='utf-8') as f:
+            domain_json = json.load(f)
 
-        return {'status': 'already_loaded', 'path': path}
+        # Validate format version
+        format_version = domain_json.get('format_version', '1.0')
+        if format_version != '1.0':
+            raise ValueError(
+                f"Unsupported domain format version: {format_version}. "
+                f"Expected 1.0"
+            )
 
-    def unload_domain(self, path: str) -> None:
+        # Load surface data if it exists
+        npz_path = storage_path / 'surface.npz'
+        surface = None
+        if npz_path.exists() and domain_json.get('messages'):
+            # Load surface arrays
+            surface_data = np.load(npz_path)
+
+            # Get grid shape and model name from JSON
+            grid_shape = tuple(domain_json['grid_shape'])
+            model_name = domain_json.get('model_name', 'all-MiniLM-L6-v2')
+
+            # Reconstruct SemanticSurface with pre-computed embeddings
+            messages = domain_json['messages']
+            embeddings = surface_data['embeddings']
+            surface = SemanticSurface(
+                messages,
+                embeddings=embeddings,
+                model_name=model_name,
+                grid_shape=grid_shape
+            )
+
+            # Restore weights (control_points are set during __init__)
+            surface.weights = surface_data['weights']
+
+        # Reconstruct Domain
+        domain_type = DomainType(domain_json['domain_type'])
+        domain = Domain(
+            name=domain_json['name'],
+            domain_type=domain_type,
+            surface=surface,
+            parent_path=domain_json.get('parent_path'),
+            metadata=domain_json.get('metadata', {})
+        )
+
+        # Restore timestamps
+        domain.created_at = datetime.fromisoformat(domain_json['created_at'])
+        domain.last_modified = datetime.fromisoformat(domain_json['last_modified'])
+        domain._message_metadata = domain_json.get('message_metadata', [])
+        domain._active = domain_json.get('active', True)
+
+        # Add to registry
+        self.domains[path] = domain
+
+        return {'status': 'loaded', 'path': path}
+
+    def unload_domain(self, path: str, save_first: bool = True) -> Dict[str, Any]:
         """
-        Mark domain as inactive (won't appear in searches or listings).
+        Unload domain from active memory.
 
-        Domain remains in memory but is hidden.
-        TODO: When we add persistence, this should save to disk and free memory.
+        By default, saves to disk before unloading. The domain can be reloaded
+        later with load_domain().
 
         Args:
             path: Domain path to unload
+            save_first: If True, save to disk before unloading (default: True)
+
+        Returns:
+            Dict with status
 
         Raises:
             DomainNotFoundError: If domain doesn't exist
@@ -542,11 +732,28 @@ class DomainManager:
                 f"Domain '{path}' not found"
             )
 
+        # Save before unloading if requested
+        if save_first:
+            self.save_domain(path)
+
+        # Mark inactive and remove from active registry
         domain._active = False
+
+        # TODO: In future, consider removing from self.domains entirely
+        # to free memory. For now, keep in memory but mark inactive.
+        # NOTE: Placeholder for future auto-save on unload
+
+        return {
+            'status': 'unloaded',
+            'path': path,
+            'saved': save_first
+        }
 
     def delete_domain(self, path: str, confirm: bool = False) -> Dict[str, Any]:
         """
-        Permanently delete domain from memory (and disk, when persistence added).
+        Permanently delete domain from memory and disk.
+
+        WARNING: This action cannot be undone. All data will be lost.
 
         Args:
             path: Domain path to delete
@@ -557,7 +764,7 @@ class DomainManager:
 
         Raises:
             ValueError: If confirm=False (prevents accidents)
-            DomainNotFoundError: If domain doesn't exist
+            DomainNotFoundError: If domain doesn't exist in memory or on disk
         """
         if not confirm:
             raise ValueError(
@@ -568,19 +775,29 @@ class DomainManager:
         self._validate_path(path)
         domain = self._find_domain(path, require_active=False)
 
-        if not domain:
-            raise DomainNotFoundError(
-                f"Domain '{path}' not found"
-            )
-
         # Get info before deleting
-        message_count = len(domain.surface.messages) if domain.surface else 0
+        message_count = 0
+        if domain:
+            message_count = len(domain.surface.messages) if domain.surface else 0
+            # Remove from memory registry
+            del self.domains[path]
 
-        # Remove from registry
-        del self.domains[path]
+        # Delete from disk if it exists
+        storage_path = self._get_domain_storage_path(path)
+        disk_deleted = False
+        if storage_path.exists():
+            import shutil
+            shutil.rmtree(storage_path)
+            disk_deleted = True
+
+        if not domain and not disk_deleted:
+            raise DomainNotFoundError(
+                f"Domain '{path}' not found in memory or on disk"
+            )
 
         return {
             'status': 'deleted',
             'path': path,
-            'message_count': message_count
+            'message_count': message_count,
+            'disk_deleted': disk_deleted
         }

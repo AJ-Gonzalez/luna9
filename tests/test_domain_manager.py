@@ -7,15 +7,11 @@ Tests:
 - Search (single domain, multi-domain, different modes)
 - Mutation (add_to_domain)
 - Lifecycle (load, unload, delete)
+- Persistence (save/load)
 - Error cases
 """
 
-import sys
-from pathlib import Path
-
-# Add luna9-python to path
-sys.path.insert(0, str(Path(__file__).parent / "luna9-python"))
-
+import pytest
 from luna9.domain_manager import (
     DomainManager,
     DomainNotFoundError,
@@ -26,12 +22,8 @@ from luna9.domain_manager import (
 from luna9 import DomainType
 
 
-def test_create_domains():
+def test_create_domains(dm):
     """Test domain creation with hierarchy."""
-    print("Testing domain creation...")
-
-    dm = DomainManager()
-
     # Create root level domain
     result = dm.create_domain("personal", "PERSONAL")
     assert result['status'] == 'created'
@@ -47,14 +39,9 @@ def test_create_domains():
 
     assert len(dm.domains) == 7
 
-    print("✓ Domain creation works")
 
-
-def test_list_domains():
+def test_list_domains(dm):
     """Test listing domains at different levels."""
-    print("Testing list_domains...")
-
-    dm = DomainManager()
     dm.create_domain("personal", "PERSONAL")
     dm.create_domain("foundation", "FOUNDATION")
     dm.create_domain("foundation/books", "FOUNDATION")
@@ -74,14 +61,9 @@ def test_list_domains():
     books_children = dm.list_domains("foundation/books")
     assert books_children == ["foundation/books/rust_book"]
 
-    print("✓ list_domains works at all levels")
 
-
-def test_get_domain_info():
+def test_get_domain_info(dm):
     """Test getting domain information."""
-    print("Testing get_domain_info...")
-
-    dm = DomainManager()
     dm.create_domain("personal", "PERSONAL")
 
     info = dm.get_domain_info("personal")
@@ -93,14 +75,9 @@ def test_get_domain_info():
     assert 'created_at' in info
     assert 'last_modified' in info
 
-    print("✓ get_domain_info works")
 
-
-def test_add_to_domain():
+def test_add_to_domain(dm):
     """Test adding messages to domain."""
-    print("Testing add_to_domain...")
-
-    dm = DomainManager()
     dm.create_domain("test", "PROJECT")
 
     # Add messages
@@ -119,14 +96,32 @@ def test_add_to_domain():
     info = dm.get_domain_info("test")
     assert info['message_count'] == 4
 
-    print("✓ add_to_domain works")
+
+def test_add_to_domain_with_metadata(dm):
+    """Test adding messages with source attribution metadata."""
+    dm.create_domain("test", "PROJECT")
+
+    messages = ["Rust emphasizes memory safety"]
+    metadata = [{
+        "speaker": "agent",
+        "source_type": "quoted",
+        "source_attribution": {
+            "type": "book",
+            "title": "The Rust Programming Language",
+            "author": "Steve Klabnik",
+            "page": "4",
+            "exact_quote": True
+        }
+    }]
+
+    dm.add_to_domain("test", messages, metadata)
+
+    info = dm.get_domain_info("test")
+    assert info['message_count'] == 1
 
 
-def test_search_single_domain():
+def test_search_single_domain(dm):
     """Test searching a single domain with different modes."""
-    print("Testing single domain search...")
-
-    dm = DomainManager()
     dm.create_domain("cooking", "PROJECT")
 
     messages = [
@@ -156,15 +151,9 @@ def test_search_single_domain():
     results_both = dm.search_domain("cooking", "pasta", k=3, mode="both")
     assert all('uv' in r for r in results_both)  # Both mode includes UV
 
-    print("✓ Single domain search works with all modes")
 
-
-def test_search_multi_domain():
+def test_search_multi_domain(dm):
     """Test searching across multiple domains."""
-    print("Testing multi-domain search...")
-
-    dm = DomainManager()
-
     # Create multiple domains with content
     dm.create_domain("foundation/books", "FOUNDATION")
     dm.create_domain("foundation/papers", "FOUNDATION")
@@ -192,52 +181,67 @@ def test_search_multi_domain():
     scores = [r['score'] for r in results]
     assert scores == sorted(scores)
 
-    print("✓ Multi-domain search works")
+
+def test_persistence_save_load(dm):
+    """Test domain persistence through save/load cycle."""
+    # Create and populate domain
+    dm.create_domain("foundation/books/rust", "FOUNDATION")
+
+    messages = [
+        "Rust emphasizes memory safety",
+        "Ownership is Rust's key feature",
+        "The borrow checker enforces safety"
+    ]
+    dm.add_to_domain("foundation/books/rust", messages)
+
+    # Save to disk
+    save_result = dm.save_domain("foundation/books/rust")
+    assert save_result['status'] == 'saved'
+    assert save_result['json_path']
+    assert save_result['npz_path']
+
+    # Query before unload
+    results_before = dm.search_domain("foundation/books/rust", "memory", k=2)
+
+    # Unload and create new manager instance
+    dm.unload_domain("foundation/books/rust", save_first=False)
+    dm2 = DomainManager(storage_dir=dm.storage_dir)
+
+    # Load from disk
+    load_result = dm2.load_domain("foundation/books/rust")
+    assert load_result['status'] == 'loaded'
+
+    # Query after load
+    results_after = dm2.search_domain("foundation/books/rust", "memory", k=2)
+
+    # Results should match
+    assert len(results_before) == len(results_after)
+    assert results_before[0]['text'] == results_after[0]['text']
 
 
-def test_lifecycle_load_unload():
-    """Test load/unload lifecycle."""
-    print("Testing load/unload...")
-
-    dm = DomainManager()
+def test_lifecycle_unload(dm):
+    """Test unload with save."""
     dm.create_domain("test", "PROJECT")
+    dm.add_to_domain("test", ["Some data"])
 
-    # Load domain (currently no-op)
-    status = dm.load_domain("test")
-    assert status['status'] in ('loaded', 'already_loaded')
-
-    # Unload domain
-    dm.unload_domain("test")
+    # Unload with save
+    result = dm.unload_domain("test", save_first=True)
+    assert result['status'] == 'unloaded'
+    assert result['saved'] is True
 
     # Domain should not appear in listings
     domains = dm.list_domains()
     assert "test" not in domains
 
-    # But should still exist (can be reloaded)
-    assert "test" in dm.domains
 
-    # Reload
-    dm.load_domain("test")
-    domains = dm.list_domains()
-    assert "test" in domains
-
-    print("✓ Load/unload lifecycle works")
-
-
-def test_lifecycle_delete():
+def test_lifecycle_delete(dm):
     """Test deletion with confirmation."""
-    print("Testing delete...")
-
-    dm = DomainManager()
     dm.create_domain("temporary", "PROJECT")
     dm.add_to_domain("temporary", ["Some data"])
 
     # Try delete without confirmation (should fail)
-    try:
+    with pytest.raises(ValueError, match="confirm=True"):
         dm.delete_domain("temporary", confirm=False)
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "confirm=True" in str(e)
 
     # Delete with confirmation
     result = dm.delete_domain("temporary", confirm=True)
@@ -248,119 +252,64 @@ def test_lifecycle_delete():
     assert "temporary" not in dm.domains
 
     # Try to access deleted domain (should fail)
-    try:
+    with pytest.raises(DomainNotFoundError):
         dm.get_domain_info("temporary")
-        assert False, "Should have raised DomainNotFoundError"
-    except DomainNotFoundError:
-        pass
-
-    print("✓ Delete with confirmation works")
 
 
-def test_error_domain_not_found():
+def test_error_domain_not_found(dm):
     """Test DomainNotFoundError cases."""
-    print("Testing DomainNotFoundError...")
-
-    dm = DomainManager()
-
     # get_domain_info on missing domain
-    try:
+    with pytest.raises(DomainNotFoundError, match="nonexistent"):
         dm.get_domain_info("nonexistent")
-        assert False, "Should have raised DomainNotFoundError"
-    except DomainNotFoundError as e:
-        assert "nonexistent" in str(e)
 
     # search_domain on missing domain
-    try:
+    with pytest.raises(DomainNotFoundError):
         dm.search_domain("nonexistent", "query")
-        assert False, "Should have raised DomainNotFoundError"
-    except DomainNotFoundError:
-        pass
 
     # add_to_domain on missing domain
-    try:
+    with pytest.raises(DomainNotFoundError):
         dm.add_to_domain("nonexistent", ["message"])
-        assert False, "Should have raised DomainNotFoundError"
-    except DomainNotFoundError:
-        pass
-
-    print("✓ DomainNotFoundError raised correctly")
 
 
-def test_error_domain_already_exists():
+def test_error_domain_already_exists(dm):
     """Test DomainAlreadyExistsError."""
-    print("Testing DomainAlreadyExistsError...")
-
-    dm = DomainManager()
     dm.create_domain("test", "PROJECT")
 
     # Try to create same domain again
-    try:
+    with pytest.raises(DomainAlreadyExistsError, match="already exists"):
         dm.create_domain("test", "PROJECT")
-        assert False, "Should have raised DomainAlreadyExistsError"
-    except DomainAlreadyExistsError as e:
-        assert "already exists" in str(e)
-
-    print("✓ DomainAlreadyExistsError raised correctly")
 
 
-def test_error_invalid_path():
+def test_error_invalid_path(dm):
     """Test InvalidDomainPathError."""
-    print("Testing InvalidDomainPathError...")
-
-    dm = DomainManager()
-
     # Empty path
-    try:
+    with pytest.raises(InvalidDomainPathError):
         dm.create_domain("", "PROJECT")
-        assert False, "Should have raised InvalidDomainPathError"
-    except InvalidDomainPathError:
-        pass
 
     # Path too deep
-    try:
+    with pytest.raises(InvalidDomainPathError, match="too deep"):
         dm.create_domain("a/b/c/d", "PROJECT")
-        assert False, "Should have raised InvalidDomainPathError"
-    except InvalidDomainPathError as e:
-        assert "too deep" in str(e)
 
     # Invalid characters
-    try:
+    with pytest.raises(InvalidDomainPathError):
         dm.create_domain("test domain", "PROJECT")  # Space
-        assert False, "Should have raised InvalidDomainPathError"
-    except InvalidDomainPathError:
-        pass
-
-    print("✓ InvalidDomainPathError raised correctly")
 
 
-def test_error_domain_inactive():
+def test_error_domain_inactive(dm):
     """Test DomainInactiveError."""
-    print("Testing DomainInactiveError...")
-
-    dm = DomainManager()
     dm.create_domain("test", "PROJECT")
     dm.add_to_domain("test", ["Some data"])
 
     # Unload domain
-    dm.unload_domain("test")
+    dm.unload_domain("test", save_first=False)
 
     # Try to search inactive domain
-    try:
+    with pytest.raises(DomainInactiveError, match="inactive"):
         dm.search_domain("test", "query")
-        assert False, "Should have raised DomainInactiveError"
-    except DomainInactiveError as e:
-        assert "inactive" in str(e).lower()
-
-    print("✓ DomainInactiveError raised correctly")
 
 
-def test_real_world_scenario():
+def test_real_world_scenario(dm):
     """Test realistic usage scenario."""
-    print("Testing real-world scenario...")
-
-    dm = DomainManager()
-
     # Set up knowledge base
     dm.create_domain("personal", "PERSONAL")
     dm.create_domain("foundation", "FOUNDATION")
@@ -406,52 +355,3 @@ def test_real_world_scenario():
             all_domains.append(child)
 
     assert len(all_domains) >= 6
-
-    print("✓ Real-world scenario works")
-
-
-def run_all_tests():
-    """Run all tests."""
-    print("=" * 60)
-    print("DomainManager Test Suite")
-    print("=" * 60)
-
-    tests = [
-        test_create_domains,
-        test_list_domains,
-        test_get_domain_info,
-        test_add_to_domain,
-        test_search_single_domain,
-        test_search_multi_domain,
-        test_lifecycle_load_unload,
-        test_lifecycle_delete,
-        test_error_domain_not_found,
-        test_error_domain_already_exists,
-        test_error_invalid_path,
-        test_error_domain_inactive,
-        test_real_world_scenario
-    ]
-
-    passed = 0
-    failed = 0
-
-    for test in tests:
-        try:
-            test()
-            passed += 1
-        except Exception as e:
-            print(f"✗ {test.__name__} FAILED: {e}")
-            import traceback
-            traceback.print_exc()
-            failed += 1
-
-    print("=" * 60)
-    print(f"Results: {passed} passed, {failed} failed")
-    print("=" * 60)
-
-    return failed == 0
-
-
-if __name__ == "__main__":
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
