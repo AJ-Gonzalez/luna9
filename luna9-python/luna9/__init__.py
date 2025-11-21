@@ -17,6 +17,7 @@ from .domain_manager import (
     DomainInactiveError,
     InvalidDomainPathError
 )
+from .hash_index import HashIndex, MessageEntry
 
 __all__ = [
     'SemanticSurface',
@@ -30,5 +31,7 @@ __all__ = [
     'DomainNotFoundError',
     'DomainAlreadyExistsError',
     'DomainInactiveError',
-    'InvalidDomainPathError'
+    'InvalidDomainPathError',
+    'HashIndex',
+    'MessageEntry'
 ]

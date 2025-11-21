@@ -68,3 +68,6 @@ proof_of_concept/synthetic_validation_output.txt
 geometric_labels_test/
 show_samples.py
 test_geometric_labeling.py
+
+# Benchmark archives
+benchmark_archives/

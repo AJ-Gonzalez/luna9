@@ -146,7 +146,7 @@ Luna Nine is being developed as both **infrastructure** (geometric memory + init
 - [x] Geometric relationship inference (validated POC)
 
 ### Phase 2: Initiative Engine (IN PROGRESS)
-- [ ] Hash-based indexing for O(1) memory lookup
+- [x] Hash-based indexing for O(1) memory lookup
 - [ ] Two-tier inference (geometric + LLM fallback)
 - [ ] Autonomous memory search decisions
 - [ ] Curvature-based attention and importance

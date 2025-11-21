@@ -5,7 +5,7 @@ Provides O(1) message retrieval by hashing surface (u,v) coordinates
 into fixed-size buckets. Adapted from audio fingerprinting techniques.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -188,6 +188,39 @@ class HashIndex:
 
         # Return top k
         return candidates[:k]
+
+    def get_initial_guess(self, surface, embedding: np.ndarray) -> Tuple[float, float]:
+        """
+        Get initial (u, v) guess for projection using nearest control point.
+
+        This provides a warm start for Newton-Raphson projection by finding
+        the control point closest to the query embedding in semantic space,
+        then returning its (u, v) coordinates.
+
+        Args:
+            surface: SemanticSurface object (needed for control points)
+            embedding: Query embedding to project
+
+        Returns:
+            (u_init, v_init) tuple for projection starting point
+        """
+        # Find nearest control point in embedding space (brute force, but only once)
+        min_dist = float('inf')
+        best_i, best_j = 0, 0
+
+        for i in range(surface.grid_m):
+            for j in range(surface.grid_n):
+                cp = surface.control_points[i, j]
+                dist = np.linalg.norm(embedding - cp)
+                if dist < min_dist:
+                    min_dist = dist
+                    best_i, best_j = i, j
+
+        # Convert grid indices to (u, v) coordinates
+        u_init = best_i / max(1, surface.grid_m - 1)
+        v_init = best_j / max(1, surface.grid_n - 1)
+
+        return u_init, v_init
 
     def stats(self) -> Dict:
         """

@@ -26,6 +26,20 @@ from .surface_math import (
 )
 from .performance import log_performance
 
+# Try to import JIT-compiled fast versions
+try:
+    from .surface_math_fast import (
+        project_to_surface_fast,
+        compute_influence_fast,
+        find_nearest_control_points_fast
+    )
+    _HAS_NUMBA = True
+except ImportError:
+    _HAS_NUMBA = False
+    project_to_surface_fast = project_to_surface  # Fallback to slow version
+    compute_influence_fast = None
+    find_nearest_control_points_fast = None
+
 
 @dataclass
 class RetrievalResult:
@@ -209,25 +223,35 @@ class SemanticSurface:
         Returns:
             List of (message_index, influence_weight) sorted by weight descending
         """
-        # Compute Bernstein basis values for all control points
-        influence_weights = []
+        # Use JIT-compiled version if available
+        if _HAS_NUMBA and compute_influence_fast is not None:
+            # Fast path: JIT-compiled influence computation
+            influence_grid = compute_influence_fast(self.weights, u, v)
 
-        degree_u = self.grid_m - 1
-        degree_v = self.grid_n - 1
+            # Convert to list with message indices
+            influence_weights = []
+            for i in range(self.grid_m):
+                for j in range(self.grid_n):
+                    msg_idx = self.provenance['cp_to_msg'][(i, j)]
+                    influence_weights.append((msg_idx, influence_grid[i, j]))
+        else:
+            # Fallback: Python loop
+            influence_weights = []
+            degree_u = self.grid_m - 1
+            degree_v = self.grid_n - 1
 
-        for i in range(self.grid_m):
-            for j in range(self.grid_n):
-                # Bernstein basis for this control point
-                basis_u = bernstein_basis(i, degree_u, u)
-                basis_v = bernstein_basis(j, degree_v, v)
+            for i in range(self.grid_m):
+                for j in range(self.grid_n):
+                    # Bernstein basis for this control point
+                    basis_u = bernstein_basis(i, degree_u, u)
+                    basis_v = bernstein_basis(j, degree_v, v)
 
-                # Combined influence (product of basis functions times weight)
-                influence = self.weights[i, j] * basis_u * basis_v
+                    # Combined influence (product of basis functions times weight)
+                    influence = self.weights[i, j] * basis_u * basis_v
 
-                # Get message index for this control point
-                msg_idx = self.provenance['cp_to_msg'][(i, j)]
-
-                influence_weights.append((msg_idx, influence))
+                    # Get message index for this control point
+                    msg_idx = self.provenance['cp_to_msg'][(i, j)]
+                    influence_weights.append((msg_idx, influence))
 
         # Normalize so weights sum to 1
         total_influence = sum(weight for _, weight in influence_weights)
@@ -266,7 +290,23 @@ class SemanticSurface:
         """
         # Fast path: Use hash index if available
         if hash_index is not None:
-            entries = hash_index.query(u, v, k=k, search_radius=1)
+            # Adaptive search radius based on grid density
+            # For sparse grids (< 16x16), need larger radius to find control points
+            # CP spacing in UV: ~1/(grid_size-1)
+            # Quantization spacing: 1/255
+            # Need radius to span at least one CP spacing
+            grid_size = max(self.grid_m, self.grid_n)
+            if grid_size < 16:
+                # Sparse grid: need large radius
+                search_radius = 20  # ~80/255 ≈ 0.31 in UV space
+            elif grid_size < 32:
+                # Medium grid: moderate radius
+                search_radius = 10  # ~40/255 ≈ 0.16 in UV space
+            else:
+                # Dense grid: small radius is fine
+                search_radius = 3   # ~12/255 ≈ 0.05 in UV space
+
+            entries = hash_index.query(u, v, k=k, search_radius=search_radius)
 
             # Convert MessageEntry objects to (i, j, msg_idx, distance) format
             result = []
@@ -314,6 +354,7 @@ class SemanticSurface:
             max_projection_iterations: Max iterations for projection
             hash_index: Optional HashIndex for O(1) candidate retrieval.
                        Enables ~10-40x speedup for nearest neighbor search.
+                       Also provides warm start for projection (3-5x speedup).
 
         Returns:
             RetrievalResult with both smooth and exact retrieval
@@ -329,12 +370,21 @@ class SemanticSurface:
         query_embedding = model.encode([query_text], show_progress_bar=False)[0]
         embed_duration = (time.perf_counter() - embed_start) * 1000
 
-        # Project to surface
+        # Get initial guess from hash index if available
+        if hash_index is not None:
+            u_init, v_init = hash_index.get_initial_guess(self, query_embedding)
+        else:
+            # Default: start from center
+            u_init, v_init = 0.5, 0.5
+
+        # Project to surface (use JIT-compiled version if available)
         project_start = time.perf_counter()
-        u, v, iterations = project_to_surface(
+        u, v, iterations = project_to_surface_fast(
             query_embedding,
             self.control_points,
             self.weights,
+            u_init=u_init,
+            v_init=v_init,
             max_iterations=max_projection_iterations
         )
         project_duration = (time.perf_counter() - project_start) * 1000
@@ -397,7 +447,7 @@ class SemanticSurface:
         # Ensure surface is up-to-date
         self.ensure_built()
 
-        u, v, _ = project_to_surface(
+        u, v, _ = project_to_surface_fast(
             embedding,
             self.control_points,
             self.weights,
