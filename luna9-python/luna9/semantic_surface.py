@@ -348,6 +348,43 @@ class SemanticSurface:
         """Evaluate surface at given UV coordinates."""
         return evaluate_surface(self.control_points, self.weights, u, v)
 
+    def project_embedding(
+        self,
+        embedding: np.ndarray,
+        max_iterations: int = 50
+    ) -> Tuple[float, float]:
+        """
+        Project an embedding onto the semantic surface to get (u,v) coordinates.
+
+        This is useful for hash bucketing and geometric operations that need
+        surface coordinates without full retrieval.
+
+        Args:
+            embedding: Embedding vector to project (shape: (embedding_dim,))
+            max_iterations: Maximum projection iterations
+
+        Returns:
+            (u, v): Surface coordinates in [0,1] x [0,1]
+
+        Example:
+            >>> surface = SemanticSurface(messages)
+            >>> model = SentenceTransformer('all-MiniLM-L6-v2')
+            >>> query_emb = model.encode(["new message"])[0]
+            >>> u, v = surface.project_embedding(query_emb)
+            >>> # Use (u,v) for hash bucketing or geometric operations
+        """
+        # Ensure surface is up-to-date
+        self.ensure_built()
+
+        u, v, _ = project_to_surface(
+            embedding,
+            self.control_points,
+            self.weights,
+            max_iterations=max_iterations
+        )
+
+        return (u, v)
+
     def compute_geodesic(
         self,
         uv1: Tuple[float, float],

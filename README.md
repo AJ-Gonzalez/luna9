@@ -189,6 +189,16 @@ Luna Nine is being developed as both **infrastructure** (geometric memory + init
 - [ ] Analytics dashboard
 - [ ] **Self-hosting always available** (open source commitment)
 
+### Phase 8: Decentralized Infrastructure (FUTURE)
+- [ ] **End-to-end decentralized hosting** for Luna Nine backend
+- [ ] User-owned memory sovereignty (your data, your infrastructure)
+- [ ] Distributed compute for memory operations
+- [ ] Cryptographic verification of memory provenance
+- [ ] Interoperable with traditional cloud deployment
+- [ ] **Core principle:** Memory should live where you choose, not where we choose
+
+*Building toward a future where AI memory infrastructure can be truly distributed - users control their own nodes, choose their own storage, maintain full sovereignty over their data. Self-hosting and managed services are just the beginning.*
+
 ### Long-term Vision
 - Multi-user support with proper isolation
 - Federated memory (share domains across instances)

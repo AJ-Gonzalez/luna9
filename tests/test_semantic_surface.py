@@ -294,3 +294,105 @@ def test_multiple_queries():
     assert len(result1.influence) > 0
     assert len(result2.influence) > 0
     assert len(result3.influence) > 0
+
+
+def test_project_embedding():
+    """Test projecting embedding to surface coordinates."""
+    from sentence_transformers import SentenceTransformer
+
+    messages = [
+        "Python programming",
+        "Rust systems language",
+        "JavaScript web development",
+        "Go concurrent programming"
+    ]
+
+    surface = SemanticSurface(messages)
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    # Project a new message embedding
+    query_text = "web programming"
+    query_embedding = model.encode([query_text])[0]
+
+    u, v = surface.project_embedding(query_embedding)
+
+    # Coordinates should be in valid range
+    assert 0 <= u <= 1
+    assert 0 <= v <= 1
+
+    # Should be a tuple of floats
+    assert isinstance(u, (float, np.floating))
+    assert isinstance(v, (float, np.floating))
+
+
+def test_project_embedding_deterministic():
+    """Test that same embedding projects to same coordinates."""
+    from sentence_transformers import SentenceTransformer
+
+    messages = ["msg1", "msg2", "msg3", "msg4"]
+    surface = SemanticSurface(messages)
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    query_embedding = model.encode(["test query"])[0]
+
+    # Project twice
+    u1, v1 = surface.project_embedding(query_embedding)
+    u2, v2 = surface.project_embedding(query_embedding)
+
+    # Should be identical
+    assert u1 == u2
+    assert v1 == v2
+
+
+def test_project_embedding_different_queries():
+    """Test that different embeddings project to different coordinates."""
+    from sentence_transformers import SentenceTransformer
+
+    messages = [
+        "Python is great",
+        "Rust is fast",
+        "JavaScript is popular",
+        "Go is concurrent"
+    ]
+
+    surface = SemanticSurface(messages)
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    # Project two very different queries
+    emb1 = model.encode(["programming languages"])[0]
+    emb2 = model.encode(["cooking recipes"])[0]
+
+    u1, v1 = surface.project_embedding(emb1)
+    u2, v2 = surface.project_embedding(emb2)
+
+    # Should project to different points (very unlikely to be exactly same)
+    assert (u1, v1) != (u2, v2)
+
+
+def test_project_embedding_matches_query():
+    """Test that project_embedding gives same coords as full query."""
+    from sentence_transformers import SentenceTransformer
+
+    messages = [
+        "Python programming",
+        "Rust systems",
+        "JavaScript web",
+        "Go concurrency"
+    ]
+
+    surface = SemanticSurface(messages)
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    query_text = "web development"
+
+    # Get coordinates via project_embedding
+    query_emb = model.encode([query_text])[0]
+    u_proj, v_proj = surface.project_embedding(query_emb)
+
+    # Get coordinates via full query
+    result = surface.query(query_text)
+    u_query, v_query = result.uv
+
+    # Should be identical (same projection algorithm)
+    assert abs(u_proj - u_query) < 1e-10
+    assert abs(v_proj - v_query) < 1e-10
