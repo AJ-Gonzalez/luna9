@@ -6,10 +6,11 @@ mutation, and lifecycle management of semantic surface domains.
 """
 
 import json
-import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
+
+import numpy as np
 
 from .domain import Domain, DomainType
 from .semantic_surface import SemanticSurface
@@ -18,27 +19,22 @@ from .semantic_surface import SemanticSurface
 # Exception hierarchy
 class DomainError(Exception):
     """Base exception for domain operations"""
-    pass
 
 
 class DomainNotFoundError(DomainError):
     """Raised when trying to access a domain that doesn't exist"""
-    pass
 
 
 class DomainAlreadyExistsError(DomainError):
     """Raised when trying to create a domain that already exists"""
-    pass
 
 
 class DomainInactiveError(DomainError):
     """Raised when trying to use an unloaded/inactive domain"""
-    pass
 
 
 class InvalidDomainPathError(DomainError):
     """Raised when domain path is invalid (too deep, invalid format, etc.)"""
-    pass
 
 
 class DomainManager:
@@ -384,16 +380,35 @@ class DomainManager:
         mode: str
     ) -> List[Dict[str, Any]]:
         """
-        Search a single domain and format results.
+        Execute search against a single domain and format results for API.
+
+        This is the core search implementation that bridges Domain's internal
+        query method with DomainManager's standardized result format. It handles
+        both exact nearest-neighbor lookup and smooth surface interpolation modes.
+
+        Search strategy:
+        1. Query domain with mode='both' to get complete result set
+        2. Extract 'sources' (exact nearest neighbors from control points)
+        3. Extract 'interpretation' (smooth surface interpolation)
+        4. Format each result with domain context and metadata
+        5. Include geometric data (UV coords, provenance) for semantic modes
+
+        Result format per message:
+        - domain_path: Full hierarchical path to source domain
+        - text: Retrieved message text
+        - score: Distance/similarity score (lower = more similar)
+        - metadata: Message-level metadata (timestamps, speaker, etc.)
+        - uv: Surface coordinates (only in semantic/both modes)
+        - provenance: Influence weights from control points (semantic/both only)
 
         Args:
-            domain: Domain to search
-            query: Query text
-            k: Number of results
-            mode: Search mode
+            domain: Domain instance to search
+            query: Query text string
+            k: Number of results to return
+            mode: 'literal' (exact only), 'semantic' (surface only), 'both'
 
         Returns:
-            List of formatted results
+            List of formatted result dicts, one per retrieved message
         """
         # Use Domain's query method
         # Domain.query() returns 'interpretation' (weighted interpolation) and 'sources' (nearest neighbors)
@@ -607,11 +622,18 @@ class DomainManager:
             }
             np.savez_compressed(npz_path, **surface_data)
 
+        # Save hash index if it exists
+        hash_index_path = None
+        if domain.hash_index:
+            hash_index_path = storage_path / 'hash_index.pkl'
+            domain.hash_index.save(hash_index_path)
+
         return {
             'status': 'saved',
             'path': path,
             'json_path': str(json_path),
-            'npz_path': str(npz_path) if npz_path else None
+            'npz_path': str(npz_path) if npz_path else None,
+            'hash_index_path': str(hash_index_path) if hash_index_path else None
         }
 
     def load_domain(self, path: str) -> Dict[str, str]:
@@ -701,6 +723,12 @@ class DomainManager:
         domain.last_modified = datetime.fromisoformat(domain_json['last_modified'])
         domain._message_metadata = domain_json.get('message_metadata', [])
         domain._active = domain_json.get('active', True)
+
+        # Load hash index if it exists
+        hash_index_path = storage_path / 'hash_index.pkl'
+        if hash_index_path.exists():
+            from .hash_index import HashIndex
+            domain.hash_index = HashIndex.load(hash_index_path)
 
         # Add to registry
         self.domains[path] = domain

@@ -5,9 +5,10 @@ Implements rational Bézier surfaces in high-dimensional embedding space
 for semantic relationship representation.
 """
 
+from typing import Tuple
+
 import numpy as np
 from scipy.special import comb
-from typing import Tuple, Optional
 
 
 def bernstein_basis(i: int, n: int, t: float) -> float:

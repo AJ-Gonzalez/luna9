@@ -8,9 +8,10 @@ Simple vector search: embed query, compute cosine similarity to all
 message embeddings, return top-k most similar.
 """
 
-import numpy as np
 from typing import List, Dict, Optional
 from dataclasses import dataclass
+
+import numpy as np
 from sentence_transformers import SentenceTransformer
 
 
@@ -76,7 +77,7 @@ class BaselineRetrieval:
             embeddings, axis=1, keepdims=True
         )
 
-        print(f"Created baseline retrieval:")
+        print("Created baseline retrieval:")
         print(f"  Messages: {len(messages)}")
         print(f"  Embedding dim: {self.embedding_dim}")
 

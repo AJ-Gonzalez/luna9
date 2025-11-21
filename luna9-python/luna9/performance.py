@@ -34,7 +34,7 @@ class PerformanceTracker:
     def _ensure_log_file(self):
         """Create log file with headers if it doesn't exist."""
         if not self.log_file.exists():
-            with open(self.log_file, 'w', newline='') as f:
+            with open(self.log_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow([
                     'timestamp',
@@ -63,7 +63,7 @@ class PerformanceTracker:
         timestamp = datetime.now().isoformat()
         metadata_json = json.dumps(metadata) if metadata else "{}"
 
-        with open(self.log_file, 'a', newline='') as f:
+        with open(self.log_file, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow([
                 timestamp,

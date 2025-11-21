@@ -9,10 +9,10 @@ A Domain wraps a SemanticSurface with:
 
 from typing import List, Dict, Optional, Any
 from datetime import datetime
-from pathlib import Path
 from enum import Enum
 
-from .semantic_surface import SemanticSurface, RetrievalResult
+from .semantic_surface import SemanticSurface
+from .hash_index import HashIndex
 
 
 class DomainType(Enum):
@@ -38,7 +38,8 @@ class Domain:
         domain_type: DomainType,
         surface: Optional[SemanticSurface] = None,
         parent_path: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        use_hash_index: bool = True
     ):
         """
         Create a new domain.
@@ -49,6 +50,7 @@ class Domain:
             surface: Existing SemanticSurface or None to create empty
             parent_path: Parent domain path (e.g., "foundation/books")
             metadata: Optional additional metadata
+            use_hash_index: Enable hash bucketing for O(1) lookups (default True)
         """
         self.name = name
         self.domain_type = domain_type
@@ -56,6 +58,7 @@ class Domain:
         self.created_at = datetime.now()
         self.last_modified = self.created_at
         self.metadata = metadata or {}
+        self.use_hash_index = use_hash_index
 
         # Construct full path
         if parent_path:
@@ -67,6 +70,9 @@ class Domain:
         self.surface = surface
         self._message_metadata: List[Dict] = []  # Per-message metadata
         self._active: bool = True  # Domain is active by default
+
+        # Initialize hash index for fast lookups
+        self.hash_index = HashIndex() if use_hash_index else None
 
     @classmethod
     def create_empty(
@@ -104,7 +110,8 @@ class Domain:
         messages: List[str],
         parent_path: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        message_metadata: Optional[List[Dict]] = None
+        message_metadata: Optional[List[Dict]] = None,
+        use_hash_index: bool = True
     ) -> 'Domain':
         """
         Create domain from initial messages.
@@ -116,6 +123,7 @@ class Domain:
             parent_path: Parent domain path
             metadata: Optional domain metadata
             message_metadata: Optional per-message metadata
+            use_hash_index: Enable hash bucketing for O(1) lookups (default True)
 
         Returns:
             Domain with populated surface
@@ -126,11 +134,21 @@ class Domain:
             domain_type=domain_type,
             surface=surface,
             parent_path=parent_path,
-            metadata=metadata
+            metadata=metadata,
+            use_hash_index=use_hash_index
         )
 
         if message_metadata:
             domain._message_metadata = message_metadata
+
+        # Populate hash index with initial messages
+        if domain.hash_index is not None:
+            # Project all messages and add to hash index
+            for i in range(len(messages)):
+                # Get embedding from surface (already computed)
+                embedding = surface.embeddings[i]
+                u, v = surface.project_embedding(embedding)
+                domain.hash_index.add_message(i, u, v)
 
         return domain
 
@@ -148,6 +166,9 @@ class Domain:
             metadata: Optional message metadata
             rebuild_threshold: Rebuild surface when pending >= threshold * size
         """
+        # Track message index before adding
+        message_idx = len(self.surface.messages) if self.surface else 0
+
         # Create surface if this is first message
         if self.surface is None:
             self.surface = SemanticSurface([message])
@@ -155,6 +176,18 @@ class Domain:
         else:
             self.surface.append_message(message, metadata, rebuild_threshold)
             self._message_metadata.append(metadata or {})
+
+        # Add to hash index if enabled
+        if self.hash_index is not None:
+            # Get embedding for this message
+            model = self.surface._get_embedding_model()
+            embedding = model.encode([message], show_progress_bar=False)[0]
+
+            # Project to surface coordinates
+            u, v = self.surface.project_embedding(embedding)
+
+            # Add to hash index
+            self.hash_index.add_message(message_idx, u, v)
 
         self.last_modified = datetime.now()
 
@@ -175,6 +208,9 @@ class Domain:
         if metadata is None:
             metadata = [None] * len(messages)
 
+        # Track starting index
+        start_idx = len(self.surface.messages) if self.surface else 0
+
         # Create surface if this is first batch
         if self.surface is None:
             self.surface = SemanticSurface(messages)
@@ -182,6 +218,18 @@ class Domain:
         else:
             self.surface.append_messages(messages, metadata, rebuild_threshold)
             self._message_metadata.extend([m or {} for m in metadata])
+
+        # Add batch to hash index if enabled
+        if self.hash_index is not None:
+            # Get embeddings for all new messages
+            model = self.surface._get_embedding_model()
+            embeddings = model.encode(messages, show_progress_bar=False)
+
+            # Project each to surface and add to hash index
+            for i, embedding in enumerate(embeddings):
+                message_idx = start_idx + i
+                u, v = self.surface.project_embedding(embedding)
+                self.hash_index.add_message(message_idx, u, v)
 
         self.last_modified = datetime.now()
 

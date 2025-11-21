@@ -5,11 +5,12 @@ Provides O(1) message retrieval by hashing surface (u,v) coordinates
 into fixed-size buckets. Adapted from audio fingerprinting techniques.
 """
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import pickle
+
 import numpy as np
 
 

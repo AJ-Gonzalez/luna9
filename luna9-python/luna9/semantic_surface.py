@@ -8,10 +8,11 @@ control point retrieval (reference/provenance).
 exact source references.
 """
 
-import numpy as np
 import time
 from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
+
+import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from .surface_math import (
@@ -143,7 +144,7 @@ class SemanticSurface:
         # Build provenance mappings
         self.provenance = self._build_provenance()
 
-        print(f"Created semantic surface:")
+        print("Created semantic surface:")
         print(f"  Control points: {self.grid_m}x{self.grid_n}")
         print(f"  Embedding dim: {self.embedding_dim}")
         print(f"  Messages: {len(messages)}")
@@ -510,9 +511,32 @@ class SemanticSurface:
 
     def _rebuild_surface(self) -> None:
         """
-        Rebuild surface incorporating pending messages.
+        Rebuild surface with pending messages using lazy incremental update.
 
-        Extends grid dimensions and recomputes embeddings/provenance.
+        This method implements the core incremental update strategy for semantic
+        surfaces. Instead of rebuilding on every message add, we buffer pending
+        messages and rebuild only when the buffer crosses a threshold.
+
+        Algorithm:
+        1. Merge pending messages into main message list
+        2. Re-embed ALL messages (optimization opportunity: only embed new ones)
+        3. Infer new grid dimensions to accommodate additional messages
+        4. Reshape embeddings into new control point grid
+        5. Rebuild provenance mappings for new grid structure
+        6. Clear pending buffer and mark surface as clean
+
+        Performance tracking:
+        - Logs embedding time separately (dominant cost)
+        - Logs total rebuild time with before/after metrics
+        - Reports grid dimension changes
+
+        Side effects:
+        - Updates self.messages, self.embeddings, self.control_points
+        - Updates self.grid_m, self.grid_n, self.provenance
+        - Clears self._pending_messages and sets self._dirty = False
+
+        Note: Current implementation re-embeds all messages for simplicity.
+        Future optimization could cache old embeddings and only embed new ones.
         """
         if not self._pending_messages:
             return

@@ -282,10 +282,37 @@ class GeometricFeatureExtractor:
         uv2: Tuple[float, float]
     ) -> Dict:
         """
-        Extract influence overlap features.
+        Compute Bernstein influence overlap metrics between two surface points.
 
-        Measures how much the two points are influenced by the same control points.
-        Low overlap may indicate opposed or distant relationships.
+        Analyzes how control points influence each location on the semantic
+        surface using Bernstein basis functions. Points with high influence
+        overlap share similar control point neighborhoods, suggesting semantic
+        relatedness. Points with distinct influence patterns may represent
+        opposed or distant semantic relationships.
+
+        Computed metrics:
+        - influence_overlap: Dot product of normalized influence weight vectors
+          (1.0 = identical influence, 0.0 = orthogonal influence)
+        - influence_entropy_1/2: Shannon entropy of influence distributions
+          (high = diffuse influence, low = concentrated/peaked influence)
+        - avg_influence_entropy: Mean entropy across both points
+        - influence_concentration_1/2: Maximum influence weight per point
+          (how dominated is each point by its strongest control point)
+
+        Interpretation:
+        - High overlap + low entropy: Both points strongly influenced by same
+          control points → likely Direct or Related relationship
+        - Low overlap + high entropy: Points draw from different control
+          neighborhoods → likely Distant or Opposed relationship
+        - High concentration: Point near a single control point (corner/edge)
+        - Low concentration: Point in smooth interior region
+
+        Args:
+            uv1: (u,v) coordinates of first point
+            uv2: (u,v) coordinates of second point
+
+        Returns:
+            Dict with influence_overlap, entropy, and concentration metrics
         """
         features = {}
 
@@ -333,9 +360,37 @@ class GeometricFeatureExtractor:
         uv2: Tuple[float, float]
     ) -> Dict:
         """
-        Extract tangent vector alignment features.
+        Measure tangent space alignment between two surface points.
 
-        Measures angular difference between tangent spaces at the two points.
+        Computes first derivatives (∂S/∂u, ∂S/∂v) at both points and measures
+        angular alignment between corresponding tangent vectors. Tangent alignment
+        reveals whether the semantic surface is "flowing" in similar directions
+        at both locations.
+
+        Geometric intuition:
+        - Tangent vectors define the local orientation of the surface
+        - Aligned tangents suggest points lie on a common semantic "ridge"
+        - Misaligned tangents suggest points lie in different semantic flows
+
+        Computed metrics:
+        - tangent_u_alignment: Angle between ∂S/∂u vectors (radians, 0 to π)
+        - tangent_v_alignment: Angle between ∂S/∂v vectors (radians, 0 to π)
+        - avg_tangent_alignment: Mean of u and v alignments
+
+        Interpretation:
+        - Small angles (near 0): Tangents point in same direction → similar
+          semantic flow, likely Related or Direct relationship
+        - Large angles (near π): Tangents oppose → different semantic directions,
+          possibly Opposed or Distant relationship
+        - Medium angles (≈π/2): Orthogonal tangent spaces → independently
+          positioned concepts
+
+        Args:
+            uv1: (u,v) coordinates of first point
+            uv2: (u,v) coordinates of second point
+
+        Returns:
+            Dict with tangent_u_alignment, tangent_v_alignment, avg metrics
         """
         features = {}
 

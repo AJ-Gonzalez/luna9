@@ -298,7 +298,41 @@ class GeometricLabelingPipeline:
         return df
 
     def _extract_features(self, pairs: List[Dict]) -> pl.DataFrame:
-        """Extract geometric features for message pairs."""
+        """
+        Build semantic surface and extract geometric features for all message pairs.
+
+        This is the core feature extraction pipeline that transforms raw message
+        pairs into geometric feature vectors for clustering and labeling.
+
+        Pipeline flow:
+        1. Load sentence transformer encoder
+        2. Extract unique messages from all pairs
+        3. Compute embeddings for unique messages (batch encoding for efficiency)
+        4. Build semantic surface from embeddings
+        5. For each pair: Extract full geometric feature suite
+        6. Combine features with pair metadata (conversation_id, distance, type)
+        7. Return as Polars DataFrame for downstream processing
+
+        Feature categories extracted per pair:
+        - Distance metrics (geodesic, Euclidean, cosine)
+        - Path curvature (total, max, mean angular changes)
+        - Displacement (vector magnitude and direction)
+        - Influence overlap (Bernstein basis similarity)
+        - Tangent alignment (surface flow direction similarity)
+        - Topology (control point neighborhoods)
+
+        Error handling:
+        - Skips pairs that fail feature extraction
+        - Logs errors but continues processing
+        - Returns only successfully extracted features
+
+        Args:
+            pairs: List of pair dicts with 'msg1', 'msg2', 'conversation_id',
+                   'distance', 'pair_type' keys
+
+        Returns:
+            Polars DataFrame with geometric features + metadata per pair
+        """
         # Load encoder
         logger.info(f"Loading encoder: {self.encoder_model_name}")
         self.encoder = SentenceTransformer(self.encoder_model_name)
@@ -378,7 +412,38 @@ class GeometricLabelingPipeline:
         logger.info(f"Saved summary to {output_summary}")
 
     def _create_summary(self, results: Dict) -> str:
-        """Create human-readable summary of results."""
+        """
+        Generate human-readable text summary of pipeline execution.
+
+        Formats the complete pipeline results dict into a readable report
+        with sections for configuration, data sampling, pair extraction,
+        feature extraction, clustering, labeling, and validation metrics.
+
+        Report structure:
+        - Header with pipeline name
+        - Configuration parameters used
+        - Sampling statistics (messages, conversations)
+        - Pair extraction stats (total pairs, strategy)
+        - Feature extraction results (surface size, feature counts)
+        - Clustering results (algorithm, number of clusters)
+        - Label inference results (label distribution)
+        - Validation metrics (purity, separation, quality indicators)
+        - Feature importance rankings (if available)
+        - Example pairs from each inferred cluster
+
+        Formatting:
+        - Uses ASCII box drawing for section headers
+        - Indented hierarchical structure
+        - Numeric values rounded for readability
+        - Percentages for distributions
+
+        Args:
+            results: Complete results dict from pipeline.run() containing
+                     config, steps, validation, and examples
+
+        Returns:
+            Formatted summary string ready to write to file or display
+        """
         lines = []
         lines.append("=" * 70)
         lines.append("GEOMETRIC RELATIONSHIP INFERENCE - RESULTS SUMMARY")
