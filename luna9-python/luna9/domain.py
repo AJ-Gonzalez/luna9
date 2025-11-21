@@ -233,6 +233,29 @@ class Domain:
 
         self.last_modified = datetime.now()
 
+    def _rebuild_hash_index(self) -> None:
+        """
+        Rebuild hash index from scratch after surface rebuild.
+
+        Called when surface dimensions change due to lazy incremental updates.
+        Clears existing hash index and repopulates from current surface state.
+        """
+        if self.hash_index is None:
+            return
+
+        # Clear existing entries (bucket size changes with new grid)
+        from .hash_index import HashIndex
+        self.hash_index = HashIndex(
+            bucket_size=self.hash_index.bucket_size,
+            quantization_bits=self.hash_index.quantization_bits
+        )
+
+        # Repopulate with all messages
+        for i in range(len(self.surface.messages)):
+            embedding = self.surface.embeddings[i]
+            u, v = self.surface.project_embedding(embedding)
+            self.hash_index.add_message(i, u, v)
+
     def query(
         self,
         query_text: str,
@@ -257,7 +280,15 @@ class Domain:
                 'message': 'Domain is empty'
             }
 
-        result = self.surface.query(query_text, k=k)
+        # Check if surface needs rebuild (happens lazily in surface.query)
+        needs_rebuild = self.surface._dirty
+
+        # Pass hash index to surface query for O(1) candidate retrieval
+        result = self.surface.query(query_text, k=k, hash_index=self.hash_index)
+
+        # Synchronize hash index after surface rebuild
+        if needs_rebuild and self.hash_index is not None:
+            self._rebuild_hash_index()
         messages = result.get_messages(self.surface.messages, mode=mode, k=k)
 
         # Add domain context
