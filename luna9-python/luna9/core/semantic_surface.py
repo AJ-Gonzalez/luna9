@@ -24,7 +24,7 @@ from .surface_math import (
     semantic_displacement,
     compute_path_curvature
 )
-from .performance import log_performance
+from ..utils.performance import log_performance
 
 # Try to import JIT-compiled fast versions
 try:

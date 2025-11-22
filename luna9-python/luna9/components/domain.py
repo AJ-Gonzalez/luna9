@@ -11,8 +11,8 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime
 from enum import Enum
 
-from .semantic_surface import SemanticSurface
-from .hash_index import HashIndex
+from ..core.semantic_surface import SemanticSurface
+from ..core.hash_index import HashIndex
 
 
 class DomainType(Enum):
@@ -72,7 +72,22 @@ class Domain:
         self._active: bool = True  # Domain is active by default
 
         # Initialize hash index for fast lookups
-        self.hash_index = HashIndex() if use_hash_index else None
+        # Only use hash index if surface is large enough to benefit
+        # Hash index overhead isn't worth it for small grids (< 8x8 = 64 control points)
+        # Benchmark shows ~10-40x speedup only applies when grid_size >= 8
+        if use_hash_index and surface is not None:
+            grid_size = max(surface.grid_m, surface.grid_n)
+            if grid_size < 8:
+                # Grid too small - full scan is faster than hash overhead
+                self.hash_index = None
+            else:
+                self.hash_index = HashIndex()
+        elif use_hash_index:
+            # Surface doesn't exist yet, create hash index optimistically
+            # Will be disabled on first add_messages if grid ends up too small
+            self.hash_index = HashIndex()
+        else:
+            self.hash_index = None
 
     @classmethod
     def create_empty(
@@ -215,6 +230,13 @@ class Domain:
         if self.surface is None:
             self.surface = SemanticSurface(messages)
             self._message_metadata = [m or {} for m in metadata]
+
+            # Check if grid is too small for hash index to be beneficial
+            if self.hash_index is not None:
+                grid_size = max(self.surface.grid_m, self.surface.grid_n)
+                if grid_size < 8:
+                    # Disable hash index for small grids - full scan is faster
+                    self.hash_index = None
         else:
             self.surface.append_messages(messages, metadata, rebuild_threshold)
             self._message_metadata.extend([m or {} for m in metadata])

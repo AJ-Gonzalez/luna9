@@ -13,7 +13,7 @@ from datetime import datetime
 import numpy as np
 
 from .domain import Domain, DomainType
-from .semantic_surface import SemanticSurface
+from ..core.semantic_surface import SemanticSurface
 
 
 # Exception hierarchy
@@ -727,7 +727,7 @@ class DomainManager:
         # Load hash index if it exists
         hash_index_path = storage_path / 'hash_index.pkl'
         if hash_index_path.exists():
-            from .hash_index import HashIndex
+            from ..core.hash_index import HashIndex
             domain.hash_index = HashIndex.load(hash_index_path)
 
         # Add to registry

@@ -1,0 +1,96 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "luna9"
+version = "0.1.0"
+description = "Geometric Memory for Language Models - Universal semantic matching through parametric surfaces"
+readme = "README.md"
+authors = [
+    {name = "AJ Gonzalez", email = "aj.gonzalez.dev@gmail.com"}
+]
+license = "MIT"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = [
+    "llm",
+    "memory",
+    "semantic-search",
+    "vector-database",
+    "embeddings",
+    "geometric-inference",
+    "parametric-surfaces",
+    "bezier",
+    "matching-engine",
+]
+
+dependencies = [
+    "numpy>=1.24.0,<2.0.0",
+    "sentence-transformers>=2.2.0",
+    "numba>=0.57.0",
+    "scipy>=1.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+api = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "pydantic>=2.0.0",
+]
+storage = [
+    "boto3>=1.26.0",  # For S3 storage backend
+]
+
+[project.urls]
+Homepage = "https://github.com/AJ-Gonzalez/luna9"
+Documentation = "https://luna9.readthedocs.io"
+Repository = "https://github.com/AJ-Gonzalez/luna9"
+Issues = "https://github.com/AJ-Gonzalez/luna9/issues"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["luna9*"]
+exclude = ["tests*", "docs*", "examples*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
