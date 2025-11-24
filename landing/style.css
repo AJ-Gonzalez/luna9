@@ -649,4 +649,18 @@ footer a:hover {
         flex-direction: column;
         align-items: stretch;
     }
+
+    /* Hide complex mockups on mobile - they don't scale well */
+    #desktop-mockup-container,
+    #terminal-demo-container {
+        display: none;
+    }
+
+    /* Show simplified mobile message */
+    .desktop-demo-section .demo-note,
+    .terminal-demo-section .demo-note {
+        display: block;
+        margin-top: 1rem;
+        font-size: 0.95rem;
+    }
 }
