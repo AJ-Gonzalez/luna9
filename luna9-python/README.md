@@ -43,6 +43,47 @@ pip install -e .
 
 ## Quick Start
 
+### Memory Harness (Recommended)
+
+The easiest way to use Luna 9 - high-level interface for document ingestion and intelligent recall:
+
+```python
+from luna9 import MemoryHarness
+
+# Create harness
+harness = MemoryHarness()
+
+# Ingest documents (supports Project Gutenberg, local files, or raw text)
+harness.ingest_gutenberg("frankenstein")  # Public domain literature
+harness.ingest_document(
+    "Your project documentation here...",
+    domain="project/myapp",
+    title="API Design Doc"
+)
+
+# Remember conversation context
+harness.remember(
+    "We decided to use FastAPI for the backend",
+    context="conversation/planning"
+)
+
+# Intelligent recall across all active domains
+results = harness.recall("What framework are we using?", k=5)
+for result in results:
+    print(f"[{result['domain_path']}] {result['text'][:100]}...")
+    print(f"  Score: {result['score']:.3f}, Position: {result.get('uv', 'N/A')}")
+```
+
+**Features:**
+- Automatic domain management
+- Multi-source ingestion (Gutenberg, files, raw text)
+- Smart document chunking (chapters, paragraphs, sentences)
+- Cross-domain semantic search
+- Provenance tracking with geometric coordinates
+- Persistent storage (survives restarts)
+
+See `examples/memory_harness_demo.py` for a complete demo with Project Gutenberg texts.
+
 ### Semantic Relationship Analysis
 
 Perfect for product positioning, competitive analysis, feature comparison:

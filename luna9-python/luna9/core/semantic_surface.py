@@ -118,6 +118,10 @@ class SemanticSurface:
                        - 9 messages → 3x3
                        - etc.
         """
+        # Validate non-empty messages
+        if len(messages) == 0:
+            raise ValueError("Cannot create SemanticSurface with empty message list")
+
         self.messages = messages
         self.model_name = model_name
         self._embedding_model = None  # Lazy-loaded

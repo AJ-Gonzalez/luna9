@@ -17,12 +17,17 @@
     box-sizing: border-box;
 }
 
+html {
+    overflow-x: hidden;
+}
+
 body {
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
     position: relative;
+    overflow-x: hidden;
 }
 
 body::before {
@@ -80,9 +85,25 @@ h1 {
 }
 
 .hero-text {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     margin-bottom: 2rem;
-    color: var(--text-dim);
+    color: var(--text);
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2.5rem;
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.05rem;
 }
 
 .three-pillars {
@@ -169,7 +190,7 @@ h3 {
     color: var(--accent);
 }
 
-/* Code Example */
+/* Code Example - Neovim Style */
 .code-example {
     background: var(--surface);
     padding: 2rem;
@@ -177,29 +198,100 @@ h3 {
     border: 1px solid var(--border);
 }
 
-.code-example h2 {
-    margin-top: 0;
-    font-family: 'Space Grotesk', sans-serif;
+.code-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0;
+    background: #1a1a1a;
+    padding: 0.5rem 1rem 0 1rem;
+    border-radius: 8px 8px 0 0;
 }
 
-.code-example p {
-    color: var(--text-dim);
+.code-tab {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.code-tab:hover {
+    color: #9ca3af;
+}
+
+.code-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.code-editor {
+    position: relative;
+    background: #1a1a1a;
+    border-radius: 0 0 8px 8px;
+}
+
+.code-content {
+    display: none;
+}
+
+.code-content.active {
+    display: block;
+}
+
+.code-example h2 {
+    margin-top: 0;
+    text-align: center;
     margin-bottom: 1rem;
     font-family: 'Space Grotesk', sans-serif;
 }
 
+.code-example > p {
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
 pre {
-    background: var(--code-bg);
-    padding: 1.5rem;
-    border-radius: 6px;
+    background: #1a1a1a;
+    padding: 0;
+    border-radius: 0;
     overflow-x: auto;
-    border: 1px solid var(--border);
+    border: none;
+    margin: 0;
+    display: flex;
+}
+
+.line-numbers {
+    background: #0f0f0f;
+    color: #4a4a4a;
+    padding: 1.5rem 1rem;
+    text-align: right;
+    user-select: none;
+    border-right: 1px solid #2a2a2a;
+    font-family: 'Iosevka', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.code-lines {
+    flex: 1;
+    padding: 1.5rem;
+    font-family: 'Iosevka', 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #d4d4e8;
+    line-height: 1.6;
 }
 
 code {
-    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-family: 'Iosevka', 'Monaco', 'Menlo', 'Courier New', monospace;
     font-size: 0.9rem;
-    color: #a8b3cf;
+    color: #d4d4e8;
+    line-height: 1.6;
 }
 
 /* Syntax Highlighting */
@@ -229,12 +321,161 @@ code .comment {
     font-style: italic;
 }
 
+code .number {
+    color: #ff5370;
+}
+
 /* Inline code */
 :not(pre) > code {
     background: var(--code-bg);
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
     font-size: 0.875rem;
+}
+
+/* Terminal Demo Section */
+.terminal-demo-section,
+.desktop-demo-section {
+    background: var(--card-bg);
+    padding: 3rem 2rem;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    margin: 3rem auto;
+    max-width: 1100px;
+}
+
+/* Terminal needs full width breakout */
+.terminal-demo-section {
+    max-width: none;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding-left: calc(50vw - 50%);
+    padding-right: calc(50vw - 50%);
+}
+
+@media (min-width: 1200px) {
+    .terminal-demo-section,
+    .desktop-demo-section {
+        padding: 3rem 2rem;
+    }
+}
+
+.terminal-demo-section h2,
+.desktop-demo-section h2 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.terminal-demo-section > p,
+.desktop-demo-section > p {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.section-intro {
+    font-size: 1.1rem;
+    color: var(--text);
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.section-intro em {
+    color: var(--accent);
+    font-style: italic;
+}
+
+.demo-note {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-top: 2rem;
+    font-size: 0.95rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Waitlist Section */
+.waitlist-section {
+    text-align: center;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.1) 0%, rgba(10, 10, 15, 0.95) 100%);
+    padding: 4rem 2rem;
+}
+
+.waitlist-intro {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.waitlist-placeholder {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: rgba(26, 26, 36, 0.5);
+    border-radius: 8px;
+    border: 2px dashed var(--accent);
+}
+
+.waitlist-form {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.waitlist-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 0.875rem 1.25rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+}
+
+.waitlist-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.waitlist-note {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+/* Waitlist Links (GitHub + Ko-fi) */
+.waitlist-links {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.btn-coffee {
+    background: rgba(217, 119, 6, 0.05);
+    color: var(--text-dim);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-coffee:hover {
+    background: rgba(217, 119, 6, 0.1);
+    color: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-1px);
 }
 
 /* Status Phases */

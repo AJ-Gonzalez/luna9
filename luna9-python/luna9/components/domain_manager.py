@@ -422,11 +422,14 @@ class DomainManager:
 
         formatted_results = []
         for i, (text, distance, idx) in enumerate(zip(messages, distances, indices)):
+            # Get metadata by index (it's a list, not a dict)
+            metadata = domain._message_metadata[idx] if idx < len(domain._message_metadata) else {}
+
             formatted = {
                 'domain_path': domain.path,
                 'text': text,
                 'score': float(distance),  # Convert numpy to Python float
-                'metadata': {}  # TODO: Add message metadata if available
+                'metadata': metadata
             }
 
             # Add geometric data for semantic/both modes

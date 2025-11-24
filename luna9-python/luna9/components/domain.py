@@ -188,6 +188,12 @@ class Domain:
         if self.surface is None:
             self.surface = SemanticSurface([message])
             self._message_metadata = [metadata or {}]
+
+            # Check if grid is too small for hash index
+            if self.hash_index is not None:
+                grid_size = max(self.surface.grid_m, self.surface.grid_n)
+                if grid_size < 8:
+                    self.hash_index = None
         else:
             self.surface.append_message(message, metadata, rebuild_threshold)
             self._message_metadata.append(metadata or {})
@@ -240,6 +246,13 @@ class Domain:
         else:
             self.surface.append_messages(messages, metadata, rebuild_threshold)
             self._message_metadata.extend([m or {} for m in metadata])
+
+            # Check if grid grew enough or is still too small for hash index
+            if self.hash_index is not None:
+                grid_size = max(self.surface.grid_m, self.surface.grid_n)
+                if grid_size < 8:
+                    # Still too small - disable hash index
+                    self.hash_index = None
 
         # Add batch to hash index if enabled
         if self.hash_index is not None:
@@ -334,8 +347,8 @@ class Domain:
 
         return {
             'name': self.name,
-            'path': self.path,
-            'type': self.domain_type.value,
+            'domain_path': self.path,
+            'domain_type': self.domain_type.value,
             'created_at': self.created_at.isoformat(),
             'last_modified': self.last_modified.isoformat(),
             'message_count': message_count,
