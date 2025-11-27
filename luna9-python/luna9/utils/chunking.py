@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 
 
-ChunkStrategy = Literal["paragraph", "sentence", "fixed", "semantic"]
+ChunkStrategy = Literal["paragraph", "sentence", "fixed", "semantic", "smart"]
 
 
 @dataclass
@@ -35,7 +35,9 @@ class TextChunker:
         max_chunk_size: Optional[int] = None,
         overlap: int = 0,
         min_chunk_size: int = 10,
-        preserve_structure: bool = True
+        preserve_structure: bool = True,
+        target_size: Optional[int] = None,
+        overlap_sentences: int = 1
     ):
         """
         Initialize text chunker.
@@ -45,17 +47,22 @@ class TextChunker:
                 - "paragraph": Split on paragraph boundaries
                 - "sentence": Split on sentence boundaries
                 - "fixed": Fixed-size chunks with optional overlap
-                - "semantic": Smart chunking preserving semantic units
+                - "semantic": Smart chunking preserving semantic units (basic)
+                - "smart": Advanced semantic chunking with sentence-level precision
             max_chunk_size: Maximum characters per chunk (None = unlimited)
             overlap: Number of characters to overlap between chunks
             min_chunk_size: Minimum characters per chunk (discard smaller)
             preserve_structure: Keep formatting markers like chapter headers
+            target_size: Target chunk size for smart strategy (flexible)
+            overlap_sentences: Number of sentences to overlap for smart strategy
         """
         self.strategy = strategy
         self.max_chunk_size = max_chunk_size
         self.overlap = overlap
         self.min_chunk_size = min_chunk_size
         self.preserve_structure = preserve_structure
+        self.target_size = target_size or max_chunk_size or 1000
+        self.overlap_sentences = overlap_sentences
 
     def chunk(
         self,
@@ -83,6 +90,8 @@ class TextChunker:
             chunks = self._chunk_fixed_size(text, base_metadata)
         elif self.strategy == "semantic":
             chunks = self._chunk_semantic(text, base_metadata)
+        elif self.strategy == "smart":
+            chunks = self._chunk_smart(text, base_metadata)
         else:
             raise ValueError(f"Unknown chunking strategy: {self.strategy}")
 
@@ -379,6 +388,150 @@ class TextChunker:
             start_pos=chunks[0].start_pos,
             end_pos=chunks[-1].end_pos
         )
+
+    def _split_into_sentences_smart(self, text: str) -> List[str]:
+        """
+        Split text into sentences with proper abbreviation handling.
+
+        From the smart chunker - handles Mr., Mrs., Dr., etc. properly.
+        """
+        # First, protect common abbreviations
+        protected = text
+        abbrevs = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Sr.', 'Jr.', 'vs.', 'etc.', 'i.e.', 'e.g.']
+        for abbr in abbrevs:
+            protected = protected.replace(abbr, abbr.replace('.', '<DOT>'))
+
+        # Split on sentence endings
+        sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z"])', protected)
+
+        # Restore abbreviations
+        sentences = [s.replace('<DOT>', '.') for s in sentences]
+
+        return [s.strip() for s in sentences if s.strip()]
+
+    def _add_sentence_overlap(self, chunks: List[str]) -> List[str]:
+        """Add sentence overlap between chunks for continuity."""
+        if len(chunks) <= 1 or self.overlap_sentences == 0:
+            return chunks
+
+        overlapped = [chunks[0]]  # First chunk unchanged
+
+        for i in range(1, len(chunks)):
+            prev_chunk = chunks[i - 1]
+            curr_chunk = chunks[i]
+
+            # Get last n sentences from previous chunk
+            prev_sentences = self._split_into_sentences_smart(prev_chunk)
+            overlap = prev_sentences[-self.overlap_sentences:] if len(prev_sentences) >= self.overlap_sentences else prev_sentences
+
+            # Prepend to current chunk with marker
+            overlap_text = ' '.join(overlap)
+            overlapped.append(f"[...] {overlap_text}\n\n{curr_chunk}")
+
+        return overlapped
+
+    def _chunk_smart(
+        self,
+        text: str,
+        base_metadata: Dict[str, Any]
+    ) -> List[Chunk]:
+        """
+        Smart chunking that respects semantic boundaries.
+
+        Strategy:
+        1. Split into paragraphs (natural semantic units)
+        2. Group paragraphs until we hit target size
+        3. Never cut mid-paragraph
+        4. If a single paragraph exceeds max_size, split on sentences
+        5. Add sentence overlap between chunks for continuity
+
+        This is the advanced version from smart_chunker.py.
+        """
+        # Split on paragraph breaks, preserving structure
+        paragraphs = re.split(r'\n\s*\n', text)
+        paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+        chunk_texts = []
+        current_chunk = []
+        current_size = 0
+
+        for para in paragraphs:
+            para_size = len(para)
+
+            # Case 1: Paragraph fits in current chunk
+            if current_size + para_size <= self.target_size:
+                current_chunk.append(para)
+                current_size += para_size + 2  # +2 for paragraph break
+
+            # Case 2: Paragraph would exceed target, but current chunk is viable
+            elif current_size >= self.min_chunk_size:
+                # Finalize current chunk
+                chunk_texts.append('\n\n'.join(current_chunk))
+                # Start new chunk with this paragraph
+                current_chunk = [para]
+                current_size = para_size
+
+            # Case 3: Current chunk too small, paragraph too big - need to split para
+            elif para_size > self.max_chunk_size:
+                # First, save what we have if anything
+                if current_chunk:
+                    chunk_texts.append('\n\n'.join(current_chunk))
+                    current_chunk = []
+                    current_size = 0
+
+                # Split the monster paragraph by sentences
+                sentences = self._split_into_sentences_smart(para)
+                sentence_chunk = []
+                sentence_size = 0
+
+                for sent in sentences:
+                    sent_size = len(sent)
+                    if sentence_size + sent_size <= self.target_size:
+                        sentence_chunk.append(sent)
+                        sentence_size += sent_size + 1
+                    else:
+                        if sentence_chunk:
+                            chunk_texts.append(' '.join(sentence_chunk))
+                        sentence_chunk = [sent]
+                        sentence_size = sent_size
+
+                # Don't forget the last sentence chunk
+                if sentence_chunk:
+                    current_chunk = [' '.join(sentence_chunk)]
+                    current_size = sentence_size
+
+            # Case 4: Current chunk small but paragraph fits under max
+            else:
+                current_chunk.append(para)
+                current_size += para_size + 2
+
+        # Don't forget the last chunk
+        if current_chunk:
+            chunk_texts.append('\n\n'.join(current_chunk))
+
+        # Add overlap between chunks for continuity
+        if self.overlap_sentences > 0:
+            chunk_texts = self._add_sentence_overlap(chunk_texts)
+
+        # Convert to Chunk objects with metadata
+        chunks = []
+        position = 0
+        for i, chunk_text in enumerate(chunk_texts):
+            chunks.append(Chunk(
+                text=chunk_text,
+                metadata={
+                    **base_metadata,
+                    "chunk_index": i,
+                    "chunk_type": "smart",
+                    "start_pos": position,
+                    "end_pos": position + len(chunk_text)
+                },
+                start_pos=position,
+                end_pos=position + len(chunk_text)
+            ))
+            position += len(chunk_text) + 2  # Account for breaks
+
+        return chunks
 
 
 def extract_chapters(text: str) -> List[Dict[str, Any]]:

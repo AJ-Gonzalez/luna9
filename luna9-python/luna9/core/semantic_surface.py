@@ -102,7 +102,7 @@ class SemanticSurface:
         self,
         messages: List[str],
         embeddings: Optional[np.ndarray] = None,
-        model_name: str = 'all-MiniLM-L6-v2',
+        model_name: str = 'all-mpnet-base-v2',
         grid_shape: Optional[Tuple[int, int]] = None
     ):
         """
@@ -443,7 +443,7 @@ class SemanticSurface:
 
         Example:
             >>> surface = SemanticSurface(messages)
-            >>> model = SentenceTransformer('all-MiniLM-L6-v2')
+            >>> model = SentenceTransformer('all-mpnet-base-v2')
             >>> query_emb = model.encode(["new message"])[0]
             >>> u, v = surface.project_embedding(query_emb)
             >>> # Use (u,v) for hash bucketing or geometric operations
@@ -676,7 +676,7 @@ class SemanticSurface:
 
 def create_surface_from_conversation(
     messages: List[str],
-    model_name: str = 'all-MiniLM-L6-v2'
+    model_name: str = 'all-mpnet-base-v2'
 ) -> SemanticSurface:
     """
     Convenience function to create semantic surface from conversation.

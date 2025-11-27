@@ -57,17 +57,14 @@ htmlcov/
 *.log
 *.bak
 
+# Session artifacts (archived, not version controlled)
+HANDOFF*.md
+RCA*.md
+TODO.md
+
 # Performance logs and deprecated debug scripts
 *.csv
 deprecated/
 
-# Validation output (may contain paths)
-proof_of_concept/synthetic_validation_output.txt
-
-# Geometric labeling test outputs
-geometric_labels_test/
-show_samples.py
-test_geometric_labeling.py
-
-# Benchmark archives
-benchmark_archives/
+# Archive directory (old benchmarks, POC code, experimental outputs)
+archive/

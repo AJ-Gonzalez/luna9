@@ -68,7 +68,33 @@ from .integrations import (
     load_gutenberg_text,
     get_recommended_work_id,
     list_recommended_works,
+    OpenRouterClient,
+    ModelPresets,
+    create_client,
 )
+
+# Initiative Architecture
+from .initiative import (
+    LMIXLexicon,
+    LMIXTranslator,
+    StateContext,
+    StateSurface,
+    Boundaries,
+    BoundariesConfig,
+    ChoirConfig,
+    CognitionMode,
+    SynthesisMethod,
+    Possibilities,
+    PossibilitiesMapper,
+    DualModeRetriever,
+    DualModeContext,
+    create_dual_mode_retriever,
+    FlowSuppressor,
+    SuppressionResult,
+)
+
+# Initiative Engine (orchestration)
+from .initiative.integration import InitiativeEngine, InitiativeContext
 
 __all__ = [
     # Version
@@ -115,6 +141,33 @@ __all__ = [
     'load_gutenberg_text',
     'get_recommended_work_id',
     'list_recommended_works',
+    'OpenRouterClient',
+    'ModelPresets',
+    'create_client',
+
+    # Initiative Architecture
+    'LMIXLexicon',
+    'LMIXTranslator',
+    'StateContext',
+    'StateSurface',
+    'Boundaries',
+    'BoundariesConfig',
+    'ChoirConfig',
+    'CognitionMode',
+    'SynthesisMethod',
+    'Possibilities',
+    'PossibilitiesMapper',
+    'InitiativeEngine',
+    'InitiativeContext',
+
+    # Dual-Mode Retrieval
+    'DualModeRetriever',
+    'DualModeContext',
+    'create_dual_mode_retriever',
+
+    # Flow Suppression
+    'FlowSuppressor',
+    'SuppressionResult',
 
     # Security
     'check_prompt',
