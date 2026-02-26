@@ -74,3 +74,8 @@ archive/
 parametric_surfaces.md
 tentative_spec.md
 old_core_libs/
+
+# Local tooling and notes
+.opencode/
+.harper-dictionary.txt
+CHANGELOG.md
