@@ -1,0 +1,5 @@
+[MAIN]
+ignore = .venv,__pycache__,.opencode,old_core_libs
+
+[FORMAT]
+max-line-length = 88

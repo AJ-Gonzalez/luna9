@@ -1,0 +1,7 @@
+[flake8]
+max-line-length = 88
+exclude =
+    .venv,
+    __pycache__,
+    .opencode,
+    old_core_libs

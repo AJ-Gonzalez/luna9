@@ -58,6 +58,7 @@ htmlcov/
 *.bak
 
 # Session artifacts (archived, not version controlled)
+.handoffs/
 HANDOFF*.md
 RCA*.md
 TODO.md
@@ -68,3 +69,8 @@ deprecated/
 
 # Archive directory (old benchmarks, POC code, experimental outputs)
 archive/
+
+# Local research/spec drafts and legacy code snapshot
+parametric_surfaces.md
+tentative_spec.md
+old_core_libs/
