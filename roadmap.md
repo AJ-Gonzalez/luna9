@@ -12,7 +12,7 @@ current pivot. Items are never deleted; they are marked done when completed.
 
 - [x] Define session model v1 (universal + directory-sensitive local session)
 - [x] Design SQLite schema v1 for state, delta, memory, and cognitive debt
-- [ ] Add file operation tool layer (read/write/edit/soft-delete boundaries)
+- [x] Add file operation tool layer (read/write/edit/soft-delete boundaries)
 - [ ] Implement REPL session persistence and resume behavior
 - [ ] Create context-construction pipeline skeleton (Global/Tangential/Local)
 
