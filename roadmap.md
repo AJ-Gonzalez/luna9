@@ -103,3 +103,7 @@ current pivot. Items are never deleted; they are marked done when completed.
 - [ ] Add benchmark harness for retrieval and context quality
 - [ ] Dogfood on a real project and track breakpoints/failures
 - [ ] Convert learnings into roadmap updates and refined acceptance criteria
+
+## Documentation
+
+- [ ] Refresh `README.md` for v1 release scope and usage
