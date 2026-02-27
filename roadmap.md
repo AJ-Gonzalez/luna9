@@ -106,4 +106,5 @@ current pivot. Items are never deleted; they are marked done when completed.
 
 ## Documentation
 
+- [x] Scaffold initial static landing, blog, and about placeholders
 - [ ] Refresh `README.md` for v1 release scope and usage
